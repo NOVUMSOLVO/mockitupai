@@ -1,9 +1,7 @@
 const express = require('express');
 const path = require('path');
 const cors = require('cors');
-const bodyParser = require('body-parser');
 const helmet = require('helmet');
-const colors = require('colors');
 const cookieParser = require('cookie-parser');
 const mongoSanitize = require('express-mongo-sanitize');
 const xss = require('xss-clean');
@@ -27,172 +25,145 @@ const { logTransaction, logError } = require('./payment-logger');
 
 // Import routes
 const templates = require('./server/routes/templateRoutes');
-const auth = require('./server/routes/auth');
+const authRoute = require('./server/routes/auth'); 
 const users = require('./server/routes/users');
+
+// Import error handler
+const errorHandler = require('./server/middleware/error');
 
 // Initialize express
 const app = express();
 
-// Set security headers
+// --- Core Middleware Setup ---
+
+// Set security headers (Helmet)
 app.use(helmet());
 
 // Enable CORS
-app.use(cors());
+app.use(cors()); // Consider more restrictive CORS options for production
 
 // Rate limiting
 const limiter = rateLimit({
   windowMs: 10 * 60 * 1000, // 10 mins
-  max: 100 // limit each IP to 100 requests per windowMs
+  max: 200, // Adjusted max requests
+  standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
+  legacyHeaders: false, // Disable the `X-RateLimit-*` headers
 });
 app.use(limiter);
 
 // Prevent http param pollution
 app.use(hpp());
 
-// Body parser
-app.use(express.json());
+// Body parsing - express.json() for JSON, express.urlencoded() for form data
+// IMPORTANT: For Stripe webhooks, raw body is needed. express.json() has a `verify` option.
+app.use(express.json({ 
+  limit: '10mb',
+  verify: (req, res, buf, encoding) => {
+    if (req.originalUrl.startsWith('/webhook/stripe')) {
+      req.rawBody = buf.toString(encoding || 'utf8');
+    }
+  }
+}));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // Cookie parser
 app.use(cookieParser());
 
-// Sanitize data
+// Sanitize MongoDB data
 app.use(mongoSanitize());
 
 // Prevent XSS attacks
 app.use(xss());
 
-// Set static folder
-app.use(express.static(path.join(__dirname, 'build'))); // Ensure this line is present and uncommented
-
-// Mount routers
-app.use('/api/v1/templates', templates);
-app.use('/api/v1/auth', auth);
-app.use('/api/v1/users', users);
-
-// Error handling middleware (must be after routes)
-const errorHandler = require('./server/middleware/error');
-app.use(errorHandler);
-
-// Existing payment processing routes will be mounted after this point
-
-// The "catchall" handler: for any request that doesn't
-// match one above, send back React's index.html file.
-app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, 'build', 'index.html'));
-});
-
-// Create a raw body buffer for webhooks
-const rawBodyParser = (req, res, next) => {
-  if (req.originalUrl === '/webhook/stripe' || req.originalUrl === '/webhook/paypal') {
-    let rawBody = Buffer.from('');
-    req.on('data', (chunk) => {
-      rawBody = Buffer.concat([rawBody, chunk]);
-    });
-    req.on('end', () => {
-      req.rawBody = rawBody;
-      next();
-    });
-  } else {
-    next();
-  }
-};
-
-// Apply our custom raw body parser first
-app.use(rawBodyParser);
-
-// Firebase Admin SDK for server-side operations
+// --- Firebase Admin SDK Initialization ---
 const admin = require('firebase-admin');
-const serviceAccount = process.env.FIREBASE_SERVICE_ACCOUNT 
-  ? JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT)
-  : null;
+let serviceAccount;
+try {
+  if (process.env.FIREBASE_SERVICE_ACCOUNT) {
+    serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
+  }
+} catch (e) {
+  console.error('Error parsing FIREBASE_SERVICE_ACCOUNT JSON:', e);
+  serviceAccount = null;
+}
 
-if (serviceAccount) {
+if (serviceAccount && Object.keys(serviceAccount).length > 0) {
   admin.initializeApp({
     credential: admin.credential.cert(serviceAccount),
   });
+  console.log('Firebase Admin SDK initialized.');
 } else {
-  console.warn('Firebase service account not configured. Some features may not work.');
+  console.warn('Firebase service account not configured or invalid. Server-side Firebase features may not work.');
 }
 
-// Stripe configuration
+// --- Stripe SDK Initialization ---
 let stripe;
 if (process.env.STRIPE_SECRET_KEY) {
   stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
+  console.log('Stripe SDK initialized.');
 } else {
   console.warn('Stripe API key not configured. Payment processing will not work.');
 }
 
-// Middleware
-app.use(helmet());
-app.use(cors());
-// Apply JSON parsing only for non-webhook routes
-app.use((req, res, next) => {
-  if (req.originalUrl === '/webhook/stripe' || req.originalUrl === '/webhook/paypal') {
-    next();
-  } else {
-    bodyParser.json()(req, res, next);
-  }
-});
-// app.use(express.static(path.join(__dirname, 'build'))); // We'll handle static serving separately
+// --- API Routes ---
+app.use('/api/v1/templates', templates);
+app.use('/api/v1/auth', authRoute);
+app.use('/api/v1/users', users);
 
-// Payment Processing Routes
-
-// Mount payment processing routes after API routes
-app.use((req, res, next) => {
-  // Skip JSON parsing for webhook routes
-  if (req.originalUrl === '/webhook/stripe' || req.originalUrl === '/webhook/paypal') {
-    next();
-  } else {
-    bodyParser.json()(req, res, next);
-  }
-});
+// --- Payment Processing and Webhook Routes ---
 
 // Create a Stripe subscription
 app.post('/api/create-subscription', async (req, res) => {
   if (!stripe) {
     return res.status(500).json({ error: 'Stripe API key not configured' });
   }
-
   try {
-    // const { paymentMethodId, planId, userId, email } = req.body;
-    const { paymentMethodId, planId, userId } = req.body; // Removed email
-
-    // Get actual price ID based on plan
+    const { paymentMethodId, planId, userId, email } = req.body;
     let stripePriceId;
     switch (planId) {
       case 'price_pro':
-        stripePriceId = process.env.STRIPE_PRICE_ID_PRO || 'price_123456789'; // replace with actual Stripe price ID
+        stripePriceId = process.env.STRIPE_PRICE_ID_PRO;
         break;
       case 'price_unlimited':
-        stripePriceId = process.env.STRIPE_PRICE_ID_UNLIMITED || 'price_987654321'; // replace with actual Stripe price ID
+        stripePriceId = process.env.STRIPE_PRICE_ID_UNLIMITED;
         break;
       default:
         return res.status(400).json({ error: 'Invalid plan selected' });
     }
+    if (!stripePriceId) {
+        return res.status(500).json({ error: 'Stripe Price ID for the selected plan is not configured on the server.' });
+    }
 
-    // Create or get customer
     let customer;
-    const customers = await stripe.customers.list({ email });
+    const customers = await stripe.customers.list({ email: email, limit: 1 });
     
     if (customers.data.length > 0) {
       customer = customers.data[0];
+      // Optionally, update the customer's default payment method
+      try {
+        await stripe.paymentMethods.attach(paymentMethodId, { customer: customer.id });
+        await stripe.customers.update(customer.id, { invoice_settings: { default_payment_method: paymentMethodId } });
+      } catch (attachError) {
+        console.warn('Could not attach new payment method to existing customer:', attachError.message);
+        // Decide if this is a critical error or if you can proceed
+      }
     } else {
       customer = await stripe.customers.create({
-        email,
+        email: email,
         payment_method: paymentMethodId,
         invoice_settings: { default_payment_method: paymentMethodId },
       });
     }
 
-    // Create subscription
     const subscription = await stripe.subscriptions.create({
       customer: customer.id,
       items: [{ price: stripePriceId }],
       expand: ['latest_invoice.payment_intent'],
+      payment_behavior: 'default_incomplete', 
+      proration_behavior: 'create_prorations',
     });
 
-    // Store subscription info in Firebase (if Firebase is configured)
-    if (admin) {
+    if (admin.apps.length > 0) { 
       const db = admin.firestore();
       await db.collection('subscriptions').doc(userId).set({
         userId,
@@ -200,12 +171,12 @@ app.post('/api/create-subscription', async (req, res) => {
         subscriptionId: subscription.id,
         status: subscription.status,
         planId: planId.replace('price_', ''),
+        paymentProcessor: 'stripe',
         createdAt: admin.firestore.FieldValue.serverTimestamp(),
         updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-      });
+      }, { merge: true });
     }
 
-    // Log successful subscription
     logTransaction(
       'subscription.created', 
       'stripe', 
@@ -219,13 +190,11 @@ app.post('/api/create-subscription', async (req, res) => {
 
     return res.json({
       subscriptionId: subscription.id,
-      clientSecret: subscription.latest_invoice.payment_intent.client_secret,
+      clientSecret: subscription.latest_invoice && subscription.latest_invoice.payment_intent ? subscription.latest_invoice.payment_intent.client_secret : null,
       status: subscription.status,
     });
   } catch (error) {
     console.error('Stripe subscription error:', error);
-    
-    // Log the error
     logError(
       'subscription.creation.failed', 
       'stripe', 
@@ -233,7 +202,6 @@ app.post('/api/create-subscription', async (req, res) => {
       error,
       { planId: req.body.planId }
     );
-    
     return res.status(500).json({ error: error.message });
   }
 });
@@ -243,124 +211,80 @@ app.post('/api/get-subscription', async (req, res) => {
   if (!stripe) {
     return res.status(500).json({ error: 'Stripe API key not configured' });
   }
-
   try {
     const { userId } = req.body;
-    
-    if (!admin) {
-      return res.status(500).json({ error: 'Firebase Admin SDK not configured' });
+    if (!admin.apps.length > 0) { 
+        return res.status(500).json({ error: 'Firebase Admin SDK not configured for subscription retrieval.' });
     }
 
     const db = admin.firestore();
     const subscriptionSnapshot = await db.collection('subscriptions')
       .where('userId', '==', userId)
+      .orderBy('createdAt', 'desc') 
       .limit(1)
       .get();
     
     if (subscriptionSnapshot.empty) {
-      return res.json({ subscription: null });
+        return res.status(404).json({ error: 'No subscription found for this user.' });
     }
 
     const subscriptionData = subscriptionSnapshot.docs[0].data();
-    
-    // Get detailed subscription info from Stripe
     let stripeSubscription = null;
-    let paymentMethod = null;
+    let paymentMethodDetails = null;
     
-    if (subscriptionData.subscriptionId && subscriptionData.paymentProcessor !== 'paypal') {
-      try {
-        stripeSubscription = await stripe.subscriptions.retrieve(subscriptionData.subscriptionId);
-        
-        // Get payment method details if available
-        if (stripeSubscription.default_payment_method) {
-          paymentMethod = await stripe.paymentMethods.retrieve(stripeSubscription.default_payment_method);
+    if (subscriptionData.subscriptionId && subscriptionData.paymentProcessor === 'stripe') {
+        stripeSubscription = await stripe.subscriptions.retrieve(subscriptionData.subscriptionId, {
+            expand: ['default_payment_method']
+        });
+        if (stripeSubscription.default_payment_method && stripeSubscription.default_payment_method.card) {
+            paymentMethodDetails = {
+                brand: stripeSubscription.default_payment_method.card.brand,
+                last4: stripeSubscription.default_payment_method.card.last4,
+                exp_month: stripeSubscription.default_payment_method.card.exp_month,
+                exp_year: stripeSubscription.default_payment_method.card.exp_year,
+            };
         }
-      } catch (err) {
-        console.error('Error retrieving Stripe subscription:', err);
-      }
     }
-    
-    return res.json({
-      subscription: {
-        id: subscriptionData.subscriptionId,
-        status: stripeSubscription?.status || subscriptionData.status,
-        planId: subscriptionData.planId,
-        cancelAtPeriodEnd: stripeSubscription?.cancel_at_period_end || false,
-        currentPeriodEnd: stripeSubscription?.current_period_end || null,
-        paymentMethod: paymentMethod ? {
-          brand: paymentMethod.card.brand,
-          last4: paymentMethod.card.last4,
-          expMonth: paymentMethod.card.exp_month,
-          expYear: paymentMethod.card.exp_year
-        } : null,
-        paymentProcessor: subscriptionData.paymentProcessor || 'stripe'
-      }
-    });
+     return res.json({ ...subscriptionData, stripeSubscription, paymentMethodDetails });
   } catch (error) {
-    console.error('Error fetching subscription:', error);
+    console.error('Error getting subscription:', error);
+    logError('subscription.get.failed', 'stripe/firebase', req.body.userId, error);
     return res.status(500).json({ error: error.message });
   }
 });
 
 // Cancel a subscription
 app.post('/api/cancel-subscription', async (req, res) => {
-  if (!stripe) {
-    return res.status(500).json({ error: 'Stripe API key not configured' });
-  }
-
+  if (!stripe) { return res.status(500).json({ error: 'Stripe API key not configured' }); }
   try {
-    const { subscriptionId, userId } = req.body;
-    
-    if (!admin) {
-      return res.status(500).json({ error: 'Firebase Admin SDK not configured' });
-    }
+    const { userId, subscriptionId } = req.body; 
+     if (!admin.apps.length > 0) { return res.status(500).json({ error: 'Firebase Admin SDK not configured.' }); }
+     if (!subscriptionId) { return res.status(400).json({ error: 'Subscription ID is required.'}); }
+
+    const canceledSubscription = await stripe.subscriptions.update(subscriptionId, {
+        cancel_at_period_end: true,
+    });
 
     const db = admin.firestore();
-    const subscriptionSnapshot = await db.collection('subscriptions')
-      .where('userId', '==', userId)
-      .limit(1)
-      .get();
-    
-    if (subscriptionSnapshot.empty) {
-      return res.status(404).json({ error: 'Subscription not found' });
-    }
-
-    const subscriptionData = subscriptionSnapshot.docs[0].data();
-    
-    // Handle PayPal subscriptions differently
-    if (subscriptionData.paymentProcessor === 'paypal') {
-      // PayPal subscription cancellation would go here
-      // For now, just update the record
-      await subscriptionSnapshot.docs[0].ref.update({
-        status: 'canceled',
-        updatedAt: admin.firestore.FieldValue.serverTimestamp()
-      });
-      
-      return res.json({ success: true });
+    // Find the document by subscriptionId to update it, or use userId if it's the doc ID
+    const subQuery = await db.collection('subscriptions').where('subscriptionId', '==', subscriptionId).limit(1).get();
+    if (!subQuery.empty) {
+        const docIdToUpdate = subQuery.docs[0].id;
+        await db.collection('subscriptions').doc(docIdToUpdate).update({
+            status: canceledSubscription.status, 
+            cancel_at_period_end: true,
+            updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+        });
+    } else {
+        console.warn(`Subscription ${subscriptionId} not found in Firestore to update cancellation status.`);
+        // Optionally, still return success to client as Stripe succeeded
     }
     
-    // Cancel the Stripe subscription
-    const subscription = await stripe.subscriptions.update(subscriptionId, {
-      cancel_at_period_end: true
-    });
-    
-    // Update Firebase record
-    await subscriptionSnapshot.docs[0].ref.update({
-      status: subscription.status,
-      updatedAt: admin.firestore.FieldValue.serverTimestamp()
-    });
-    
-    // Log cancellation
-    logTransaction(
-      'subscription.canceled', 
-      'stripe', 
-      userId, 
-      { subscriptionId: subscriptionId }
-    );
-    
-    return res.json({ success: true });
+    logTransaction('subscription.canceled', 'stripe', userId, { subscriptionId });
+    return res.json({ status: canceledSubscription.status, cancel_at_period_end: true });
   } catch (error) {
-    console.error('Error canceling subscription:', error);
+    console.error('Stripe cancellation error:', error);
+    logError('subscription.cancel.failed', 'stripe', req.body.userId, error, { subscriptionId: req.body.subscriptionId });
     return res.status(500).json({ error: error.message });
   }
 });
@@ -368,241 +292,183 @@ app.post('/api/cancel-subscription', async (req, res) => {
 // Handle PayPal subscription confirmation
 app.post('/api/confirm-paypal-subscription', async (req, res) => {
   try {
-    const { subscriptionID, planId, userId } = req.body;
-    
-    // In a real app, you'd verify the PayPal subscription here
-    
-    // Store subscription info in Firebase (if Firebase is configured)
-    if (admin) {
-      const db = admin.firestore();
-      await db.collection('subscriptions').doc(userId).set({
-        userId,
-        subscriptionId: subscriptionID,
-        status: 'active',
-        planId,
-        paymentProcessor: 'paypal',
-        createdAt: admin.firestore.FieldValue.serverTimestamp(),
-        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-      });
+    const { orderID, userId, planId } = req.body;
+    console.log('Received PayPal confirmation request:', { orderID, userId, planId });
+
+    if (admin.apps.length > 0) {
+        const db = admin.firestore();
+        await db.collection('subscriptions').doc(userId).set({
+            userId,
+            paypalOrderId: orderID, 
+            planId: planId,
+            status: 'active', 
+            paymentProcessor: 'paypal',
+            createdAt: admin.firestore.FieldValue.serverTimestamp(),
+            updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+        }, { merge: true });
+        logTransaction('subscription.created', 'paypal', userId, { orderID, planId });
+        res.json({ status: 'success', message: 'PayPal subscription confirmed (simulated)' });
+    } else {
+        throw new Error('Firebase Admin not initialized for PayPal confirmation.');
     }
-
-    // Log successful subscription
-    logTransaction(
-      'subscription.created',
-      'paypal',
-      userId,
-      {
-        subscriptionId: subscriptionID,
-        planId: planId
-      }
-    );
-
-    return res.json({ success: true });
   } catch (error) {
-    console.error('PayPal subscription error:', error);
-    
-    // Log the error
-    logError(
-      'subscription.creation.failed',
-      'paypal',
-      req.body.userId,
-      error,
-      { planId: req.body.planId }
-    );
-    
+    console.error('PayPal confirmation error:', error);
+    logError('paypal.subscription.confirm.failed', 'paypal', req.body.userId, error);
     return res.status(500).json({ error: error.message });
   }
 });
 
+// --- Webhook Handlers ---
+
 // Webhook for Stripe events
 app.post('/webhook/stripe', async (req, res) => {
-  if (!stripe) {
-    return res.status(500).json({ error: 'Stripe API key not configured' });
-  }
-
+  if (!stripe) { return res.status(400).send('Stripe webhook error: Stripe not configured.'); }
   const sig = req.headers['stripe-signature'];
+  const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET;
   let event;
 
+  if (!req.rawBody) {
+    console.error('Stripe Webhook Error: Raw body not available. Ensure express.json verify option is correctly set up.');
+    return res.status(400).send('Webhook Error: Raw body not available.');
+  }
+  if (!sig) {
+    console.error('Stripe Webhook Error: No stripe-signature header.');
+    return res.status(400).send('Webhook Error: Missing stripe-signature.');
+  }
+  if (!endpointSecret) {
+    console.error('Stripe Webhook Error: STRIPE_WEBHOOK_SECRET not set on server.');
+    return res.status(500).send('Webhook configuration error.');
+  }
+
   try {
-    // Use the rawBody captured by our middleware
-    event = stripe.webhooks.constructEvent(
-      req.rawBody, 
-      sig, 
-      process.env.STRIPE_WEBHOOK_SECRET
-    );
+    event = stripe.webhooks.constructEvent(req.rawBody, sig, endpointSecret);
   } catch (err) {
-    console.error('Webhook signature verification failed:', err.message);
+    console.error(`Stripe Webhook Signature Verification Error: ${err.message}`);
+    logError('webhook.stripe.signature_error', 'stripe', null, err);
     return res.status(400).send(`Webhook Error: ${err.message}`);
   }
 
-  // Handle the event
-  switch (event.type) {
-    case 'customer.subscription.updated':
-    case 'customer.subscription.deleted':
-      const subscription = event.data.object;
-      // Update subscription status in your database
-      if (admin) {
-        // Find the user with this subscription
-        const db = admin.firestore();
-        const subscriptionSnapshot = await db.collection('subscriptions')
-          .where('subscriptionId', '==', subscription.id)
-          .get();
-        
-        if (!subscriptionSnapshot.empty) {
-          const subscriptionDoc = subscriptionSnapshot.docs[0];
-          await subscriptionDoc.ref.update({
-            status: subscription.status,
-            updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-          });
+  console.log(`Stripe event received: ${event.type}`);
+  try {
+    if (!admin.apps.length > 0) {
+        console.error('Firebase Admin not initialized. Cannot process webhook event in Firestore.');
+        // Decide if you should still send 200 to Stripe or a 500
+        return res.status(500).json({ error: 'Firebase Admin not configured for webhook processing.'});
+    }
+    const db = admin.firestore();
+    const data = event.data.object;
+    let userIdToUpdate, customerId, subscriptionIdToUpdate;
 
-          // Update user's subscription tier if subscription is canceled
-          if (subscription.status === 'canceled') {
-            const userId = subscriptionDoc.data().userId;
-            const userRef = db.collection('users').doc(userId);
-            await userRef.update({
-              subscriptionTier: 'free',
-              mockupsRemaining: 3, // Reset to free tier
-              updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    // Helper to find user and update subscription
+    const findUserAndUpdateSubscription = async (subId, updatePayload) => {
+        const subQuery = await db.collection('subscriptions').where('subscriptionId', '==', subId).limit(1).get();
+        if (!subQuery.empty) {
+            const docId = subQuery.docs[0].id;
+            userIdToUpdate = subQuery.docs[0].data().userId;
+            await db.collection('subscriptions').doc(docId).update({
+                ...updatePayload,
+                updatedAt: admin.firestore.FieldValue.serverTimestamp(),
             });
-          }
+            return userIdToUpdate;
         }
-      }
-      break;
-    default:
-      console.log(`Unhandled event type: ${event.type}`);
-  }
+        return null;
+    };
 
-  res.json({received: true});
+    switch (event.type) {
+      case 'invoice.payment_succeeded':
+        subscriptionIdToUpdate = data.subscription;
+        customerId = data.customer;
+        if (subscriptionIdToUpdate) {
+            const stripeSub = await stripe.subscriptions.retrieve(subscriptionIdToUpdate);
+            userIdToUpdate = await findUserAndUpdateSubscription(subscriptionIdToUpdate, {
+                status: stripeSub.status,
+                current_period_end: admin.firestore.Timestamp.fromMillis(stripeSub.current_period_end * 1000),
+            });
+            if (userIdToUpdate) logTransaction('webhook.invoice.payment_succeeded', 'stripe', userIdToUpdate, { subscriptionIdToUpdate, customerId });
+        }
+        break;
+      case 'invoice.payment_failed':
+        subscriptionIdToUpdate = data.subscription;
+        customerId = data.customer;
+        userIdToUpdate = await findUserAndUpdateSubscription(subscriptionIdToUpdate, { status: 'past_due' }); // Or map Stripe's status
+        if (userIdToUpdate) logError('webhook.invoice.payment_failed', 'stripe', userIdToUpdate, data, { subscriptionIdToUpdate, customerId });
+        break;
+      case 'customer.subscription.updated':
+      case 'customer.subscription.deleted': 
+      case 'customer.subscription.created': 
+        subscriptionIdToUpdate = data.id;
+        customerId = data.customer;
+        userIdToUpdate = await findUserAndUpdateSubscription(subscriptionIdToUpdate, {
+            status: data.status,
+            planId: data.items.data[0].price.lookup_key || data.items.data[0].price.id, 
+            cancel_at_period_end: data.cancel_at_period_end,
+            current_period_end: admin.firestore.Timestamp.fromMillis(data.current_period_end * 1000),
+        });
+         if (userIdToUpdate) {
+            logTransaction(`webhook.${event.type}`, 'stripe', userIdToUpdate, { subscriptionIdToUpdate, customerId, status: data.status });
+        } else if (event.type === 'customer.subscription.created') {
+            console.warn(`Subscription ${subscriptionIdToUpdate} for customer ${customerId} not found in DB. Consider manual check or creating user mapping.`);
+        }
+        break;
+      default:
+        console.log(`Unhandled Stripe event type ${event.type}`);
+    }
+    res.json({received: true});
+  } catch (error) {
+      console.error(`Error processing Stripe webhook ${event.type}:`, error);
+      logError(`webhook.stripe.processing_error.${event.type}`, 'stripe', null, error, { eventId: event.id });
+      res.status(500).json({ error: 'Webhook processing error' });
+  }
 });
 
 // Webhook for PayPal events
 app.post('/webhook/paypal', async (req, res) => {
-  // Parse the webhook payload
-  let event;
-  
-  try {
-    // Use the raw body captured by our middleware
-    event = JSON.parse(req.rawBody.toString());
-  } catch (err) {
-    console.error('Error parsing PayPal webhook:', err);
-    return res.status(400).send(`Webhook Error: ${err.message}`);
-  }
-  
-  // Verify webhook signature here if using PayPal signature validation
-  // For PayPal signature verification
-  const webhookId = process.env.PAYPAL_WEBHOOK_ID;
-  const paypalAuthAlgo = req.headers['paypal-auth-algo'];
-  const paypalTransmissionSig = req.headers['paypal-transmission-sig'];
-  
-  // If using PayPal signature verification (recommended for production)
-  if (webhookId && paypalTransmissionSig && process.env.NODE_ENV === 'production') {
-    // In production, you should verify the webhook signature
-    // This would require the PayPal SDK and your webhook ID
-    console.log('Received verified PayPal webhook:', event.event_type);
-  } else {
-    console.log('Received unverified PayPal webhook:', event.event_type);
-    // For development, you can accept unverified webhooks
-    // For production, consider requiring verification
-    if (process.env.NODE_ENV === 'production') {
-      console.warn('Warning: Processing unverified PayPal webhook in production');
-    }
-  }
-  
-  try {
-    // Handle the different event types
-    switch(event.event_type) {
-      case 'BILLING.SUBSCRIPTION.CANCELLED':
-      case 'BILLING.SUBSCRIPTION.SUSPENDED':
-        // Subscription was cancelled or suspended
-        const resource = event.resource;
-        const subscriptionId = resource.id;
-        
-        if (admin) {
-          const db = admin.firestore();
-          // Find the subscription in Firebase
-          const subscriptionSnapshot = await db.collection('subscriptions')
-            .where('subscriptionId', '==', subscriptionId)
-            .where('paymentProcessor', '==', 'paypal')
-            .get();
-          
-          if (!subscriptionSnapshot.empty) {
-            const subscriptionDoc = subscriptionSnapshot.docs[0];
-            const userId = subscriptionDoc.data().userId;
-            
-            // Update subscription status
-            await subscriptionDoc.ref.update({
-              status: 'canceled',
-              updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-            });
-            
-            // Downgrade user to free tier
-            const userRef = db.collection('users').doc(userId);
-            await userRef.update({
-              subscriptionTier: 'free',
-              mockupsRemaining: 3, // Reset to free tier
-              updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-            });
-            
-            // Log the cancellation
-            logTransaction(
-              'subscription.canceled',
-              'paypal',
-              userId,
-              { subscriptionId: subscriptionId }
-            );
-          }
-        }
-        break;
-        
-      case 'BILLING.SUBSCRIPTION.EXPIRED':
-        // Subscription expired
-        // Handle similarly to cancellation
-        break;
-        
-      case 'BILLING.SUBSCRIPTION.UPDATED':
-        // Subscription was updated (could be plan change, etc.)
-        break;
-        
-      default:
-        console.log(`Unhandled PayPal event type: ${event.event_type}`);
-    }
-    
-    res.json({ received: true });
-  } catch (err) {
-    console.error('Error processing PayPal webhook:', err);
-    
-    // Log the error
-    logError(
-      'webhook.processing.failed',
-      'paypal',
-      'unknown', // We might not know the user ID here
-      err,
-      { eventType: event.event_type }
-    );
-    
-    res.status(500).send(`Webhook processing error: ${err.message}`);
-  }
+  console.log('PayPal webhook received.', req.body);
+  // TODO: Implement PayPal webhook verification (highly recommended) and event handling
+  // Example: const eventType = req.body.event_type;
+  logTransaction('webhook.paypal.received', 'paypal', null, req.body);
+  res.status(200).send('EVENT_RECEIVED'); 
 });
 
-// Serve frontend for all other routes (if you were serving frontend from Node.js directly)
-// This part is more relevant if you are NOT separating frontend and backend hosting.
-// For Render (backend) + Hostinger (frontend), this section in server.js is less critical
-// as Hostinger will serve the frontend. However, it doesn't hurt to keep it for other deployment scenarios.
+
+// --- Serve React Frontend and SPA Fallback ---
+// Serve static files from the React build directory
+app.use(express.static(path.join(__dirname, 'build')));
+
+// The "catchall" handler: for any request that doesn't match one above,
+// send back React's index.html file.
 app.get('*', (req, res) => {
-  res.sendFile(path.resolve(__dirname, 'build', 'index.html'));
+  // Check if the request is for an API endpoint or a webhook, if so, it should have been handled already.
+  // This check is a safeguard but ideally, API/webhook routes are specific enough not to fall through.
+  if (req.originalUrl.startsWith('/api/') || req.originalUrl.startsWith('/webhook/')) {
+    // This indicates a misconfiguration or a request to a non-existent API/webhook endpoint.
+    // Let the error handler (or a specific 404 for API) handle this.
+    // For now, we can send a 404 directly for unhandled API/webhook like paths.
+    return res.status(404).send('API or Webhook endpoint not found.');
+  }
+  // For all other GET requests, serve the React app's entry point.
+  res.sendFile(path.join(__dirname, 'build', 'index.html'));
 });
 
+// --- Global Error Handler (must be the LAST middleware) ---
+app.use(errorHandler);
 
-const PORT = process.env.PORT || 5000; // Use Render's port or 5000 locally
+// --- Start Server ---
+const PORT = process.env.PORT || 5000;
 
 app.listen(PORT, () =>
   console.log(
-    `Server running in ${process.env.NODE_ENV || 'development'} mode on port ${PORT}`.yellow.bold
+    `Server running in ${process.env.NODE_ENV || 'development'} mode on port ${PORT}`
   )
 );
 
 // Handle unhandled promise rejections
 process.on('unhandledRejection', (reason, promise) => {
   console.error('Unhandled Rejection at:', promise, 'reason:', reason);
-  // Application can continue running in this case
+});
+
+process.on('uncaughtException', (error) => {
+  console.error('Uncaught Exception:', error);
+  // It's generally recommended to gracefully shutdown the server on uncaught exceptions
+  // process.exit(1);
 });
