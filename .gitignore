@@ -1,0 +1,34 @@
+# Dependencies
+/node_modules
+/.pnp
+.pnp.js
+
+# Production
+/build # Ignores the frontend build directory
+
+# Environment files - IMPORTANT: Never commit .env files with secrets
+.env
+*.env
+.env.*
+!/.env.example # Good practice to commit an example file
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+*.log
+
+# OS-specific
+.DS_Store
+
+# Archives & Installers
+*.zip
+*.pkg
+
+# Temporary files
+*.tmp
+
+# Specific output/status files
+netlify-status.html
+netlify-status.txt
+server-response.html
