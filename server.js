@@ -12,7 +12,7 @@ const rateLimit = require('express-rate-limit');
 require('dotenv').config({ path: '.env' });
 
 // Log environment variables for debugging
-console.log('MONGO_URI:', process.env.MONGO_URI ? 'Found' : 'Not found');
+// console.log('MONGO_URI:', process.env.MONGO_URI ? 'Found' : 'Not found');
 
 // Import database connection
 const connectDB = require('./server/config/db');
@@ -91,7 +91,7 @@ if (serviceAccount && Object.keys(serviceAccount).length > 0) {
   admin.initializeApp({
     credential: admin.credential.cert(serviceAccount),
   });
-  console.log('Firebase Admin SDK initialized.');
+  // console.log('Firebase Admin SDK initialized.');
 } else {
   console.warn('Firebase service account not configured or invalid. Server-side Firebase features may not work.');
 }
@@ -100,7 +100,7 @@ if (serviceAccount && Object.keys(serviceAccount).length > 0) {
 let stripe;
 if (process.env.STRIPE_SECRET_KEY) {
   stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
-  console.log('Stripe SDK initialized.');
+  // console.log('Stripe SDK initialized.');
 } else {
   console.warn('Stripe API key not configured. Payment processing will not work.');
 }
@@ -455,12 +455,17 @@ app.use(errorHandler);
 
 // --- Start Server ---
 const PORT = process.env.PORT || 5000;
+const HOST = '0.0.0.0'; // Explicitly set host for Render
 
-app.listen(PORT, () =>
+const server = app.listen(PORT, HOST, () =>
   console.log(
     `Server running in ${process.env.NODE_ENV || 'development'} mode on port ${PORT}`
   )
 );
+
+// Increase timeout values
+server.keepAliveTimeout = 120000; // 120 seconds
+server.headersTimeout = 125000; // 125 seconds (must be > keepAliveTimeout)
 
 // Handle unhandled promise rejections
 process.on('unhandledRejection', (reason, promise) => {
