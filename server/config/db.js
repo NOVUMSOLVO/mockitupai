@@ -13,7 +13,10 @@ const connectDB = async () => {
 
     console.log(`MongoDB Connected: ${conn.connection.host}`.cyan.underline.bold);
   } catch (err) {
-    console.error(`Error: ${err.message}`.red);
+    console.error('!!! MongoDB Connection Error !!!'.red.bold);
+    console.error(`Error Message: ${err.message}`.red);
+    console.error(`Full Error: ${err.stack}`.red);
+    console.error('MONGO_URI used:', process.env.MONGO_URI ? process.env.MONGO_URI.substring(0, 20) + '...' : 'Not Defined');
     // Exit process with failure
     process.exit(1);
   }
