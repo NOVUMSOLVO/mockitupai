@@ -44,10 +44,14 @@ app.set('trust proxy', 1); // Adjust the number of proxies if needed, 1 is commo
 app.use(helmet({
   contentSecurityPolicy: {
     directives: {
-      ...helmet.contentSecurityPolicy.getDefaultDirectives(),
-      scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
-      imgSrc: ["'self'", "data:", "https://*", "http://*"],
-      connectSrc: ["'self'", "http://*", "https://*"], // Added this line
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"], // Allows scripts from own domain, inline scripts, and eval
+      styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"], // Allows styles from own domain, inline styles, and Google Fonts
+      imgSrc: ["'self'", "data:", "https://*", "http://*"], // Allows images from own domain, data URIs, and any HTTPS/HTTP source
+      connectSrc: ["'self'", "http://*", "https://*"], // Allows connections to own domain and any HTTPS/HTTP source (for APIs, etc.)
+      fontSrc: ["'self'", "https://fonts.gstatic.com"], // Allows fonts from own domain and Google Fonts
+      objectSrc: ["'none'"], // Disallows <object>, <embed>, <applet>
+      upgradeInsecureRequests: [], // Tells browsers to upgrade HTTP requests to HTTPS
     },
   },
 }));
