@@ -44,10 +44,10 @@ app.set('trust proxy', 1); // Adjust the number of proxies if needed, 1 is commo
 app.use(helmet({
   contentSecurityPolicy: {
     directives: {
-      ...helmet.contentSecurityPolicy.getDefaultDirectives(), // Spread default directives
-      scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"], // More permissive script-src
-      imgSrc: ["'self'", "data:", "https://*", "http://*"],       // More permissive img-src
-      // scriptSrcAttr: ["'self'", "'unsafe-inline'"], // If needed for inline event handlers, default is 'none'
+      ...helmet.contentSecurityPolicy.getDefaultDirectives(),
+      scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
+      imgSrc: ["'self'", "data:", "https://*", "http://*"],
+      connectSrc: ["'self'", "http://*", "https://*"], // Added this line
     },
   },
 }));
