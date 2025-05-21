@@ -62,7 +62,7 @@ app.use(mongoSanitize());
 app.use(xss());
 
 // Set static folder
-// app.use(express.static(path.join(__dirname, 'build'))); // We'll handle static serving separately or let Render do it if backend and frontend are combined later.
+app.use(express.static(path.join(__dirname, 'build'))); // Ensure this line is present and uncommented
 
 // Mount routers
 app.use('/api/v1/templates', templates);
@@ -74,6 +74,12 @@ const errorHandler = require('./server/middleware/error');
 app.use(errorHandler);
 
 // Existing payment processing routes will be mounted after this point
+
+// The "catchall" handler: for any request that doesn't
+// match one above, send back React's index.html file.
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, 'build', 'index.html'));
+});
 
 // Create a raw body buffer for webhooks
 const rawBodyParser = (req, res, next) => {
@@ -148,7 +154,8 @@ app.post('/api/create-subscription', async (req, res) => {
   }
 
   try {
-    const { paymentMethodId, planId, userId, email } = req.body;
+    // const { paymentMethodId, planId, userId, email } = req.body;
+    const { paymentMethodId, planId, userId } = req.body; // Removed email
 
     // Get actual price ID based on plan
     let stripePriceId;
@@ -361,7 +368,7 @@ app.post('/api/cancel-subscription', async (req, res) => {
 // Handle PayPal subscription confirmation
 app.post('/api/confirm-paypal-subscription', async (req, res) => {
   try {
-    const { subscriptionID, planId, userId, email } = req.body;
+    const { subscriptionID, planId, userId } = req.body;
     
     // In a real app, you'd verify the PayPal subscription here
     
@@ -484,13 +491,11 @@ app.post('/webhook/paypal', async (req, res) => {
   // Verify webhook signature here if using PayPal signature validation
   // For PayPal signature verification
   const webhookId = process.env.PAYPAL_WEBHOOK_ID;
-  const paypalSignature = req.headers['paypal-transmission-sig'];
-  const paypalCertUrl = req.headers['paypal-cert-url'];
-  const paypalTransmissionId = req.headers['paypal-transmission-id'];
-  const paypalTransmissionTime = req.headers['paypal-transmission-time'];
+  const paypalAuthAlgo = req.headers['paypal-auth-algo'];
+  const paypalTransmissionSig = req.headers['paypal-transmission-sig'];
   
   // If using PayPal signature verification (recommended for production)
-  if (webhookId && paypalSignature && process.env.NODE_ENV === 'production') {
+  if (webhookId && paypalTransmissionSig && process.env.NODE_ENV === 'production') {
     // In production, you should verify the webhook signature
     // This would require the PayPal SDK and your webhook ID
     console.log('Received verified PayPal webhook:', event.event_type);
