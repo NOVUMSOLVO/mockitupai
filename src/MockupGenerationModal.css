@@ -1,0 +1,24 @@
+/* MockupGenerationModal Component Styles */
+
+.upload-progress-container {
+  width: 100%;
+  background-color: #e5e7eb; /* bg-gray-200 */
+  border-radius: 9999px; /* rounded-full */
+  height: 0.625rem; /* h-2.5 */
+  margin-top: 1rem; /* mt-4 */
+  overflow: hidden;
+}
+
+.upload-progress-bar {
+  background-color: #4f46e5; /* bg-indigo-600 */
+  height: 0.625rem; /* h-2.5 */
+  border-radius: 9999px; /* rounded-full */
+  transition: width 300ms ease-out; /* transition-all duration-300 ease-out */
+}
+
+.upload-progress-text {
+  font-size: 0.75rem; /* text-xs */
+  text-align: center;
+  color: #4b5563; /* text-gray-600 */
+  margin-top: 0.25rem; /* mt-1 */
+}

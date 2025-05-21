@@ -1,0 +1,15 @@
+{
+  "extends": [
+    "react-app"
+  ],
+  "parser": "@babel/eslint-parser",
+  "parserOptions": {
+    "requireConfigFile": false,
+    "babelOptions": {
+      "presets": ["@babel/preset-env", "@babel/preset-react"]
+    }
+  },
+  "rules": {
+    "jsx-a11y/anchor-is-valid": "warn"
+  }
+}

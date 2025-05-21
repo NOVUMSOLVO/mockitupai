@@ -1,0 +1,23 @@
+/* PayPalCheckout Component Styles */
+
+.paypal-button-container {
+  margin-top: 1rem; /* mt-4 */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem; /* text-xs */
+  color: #6b7280; /* text-gray-500 */
+}
+
+.paypal-button-container svg {
+  height: 1rem; /* h-4 */
+  width: 1rem; /* w-4 */
+  margin-right: 0.25rem; /* mr-1 */
+}
+
+/* PayPal button container */
+.paypal-buttons {
+  width: 100%;
+  max-width: 300px;
+  margin: 0 auto;
+}

@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mockitup.ai Connection Test</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .header {
+            background-color: #4f46e5;
+            color: white;
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .success {
+            color: #10b981;
+            font-weight: bold;
+        }
+        .section {
+            margin-bottom: 30px;
+            padding: 20px;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+        }
+        .instructions {
+            background-color: #f9fafb;
+        }
+        code {
+            background-color: #f3f4f6;
+            padding: 2px 4px;
+            border-radius: 4px;
+            font-family: monospace;
+        }
+        .status {
+            margin-top: 10px;
+            padding: 15px;
+            background-color: #ecfdf5;
+            border-left: 4px solid #10b981;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Mockitup.ai Connection Test</h1>
+        <p>Testing your connection to the Mockitup.ai server</p>
+    </div>
+
+    <div class="section">
+        <h2><span class="success">✓</span> Connection Successful!</h2>
+        <p>If you can see this page, your server is running correctly and can serve content.</p>
+        <div class="status">
+            <p><strong>Server Status:</strong> Online</p>
+            <p><strong>Port:</strong> <span id="port">5000</span></p>
+            <p><strong>Protocol:</strong> HTTP</p>
+        </div>
+    </div>
+
+    <div class="section instructions">
+        <h2>Next Steps</h2>
+        <ol>
+            <li>Try running the React development server: <code>npm start</code></li>
+            <li>Build for production: <code>npm run build</code></li>
+            <li>Run the production server: <code>npm run serve</code></li>
+        </ol>
+        <p>For more information, see the <code>README.md</code> and <code>TROUBLESHOOTING.md</code> files.</p>
+    </div>
+
+    <script>
+        // Display the port from the URL
+        document.getElementById('port').textContent = window.location.port || '80';
+    </script>
+</body>
+</html>
