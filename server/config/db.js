@@ -11,11 +11,11 @@ const connectDB = async () => {
       w: 'majority'
     });
 
-    console.log(`MongoDB Connected: ${conn.connection.host}`.cyan.underline.bold);
+    console.log(`MongoDB Connected: ${conn.connection.host}`);
   } catch (err) {
-    console.error('!!! MongoDB Connection Error !!!'.red.bold);
-    console.error(`Error Message: ${err.message}`.red);
-    console.error(`Full Error: ${err.stack}`.red);
+    console.error('!!! MongoDB Connection Error !!!');
+    console.error(`Error Message: ${err.message}`);
+    console.error(`Full Error: ${err.stack}`);
     console.error('MONGO_URI used:', process.env.MONGO_URI ? process.env.MONGO_URI.substring(0, 20) + '...' : 'Not Defined');
     // Exit process with failure
     process.exit(1);
