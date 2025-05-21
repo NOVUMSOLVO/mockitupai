@@ -9,13 +9,7 @@ module.exports = {
   },
   webpack: {
     configure: (webpackConfig, { env, paths }) => {
-      // Conditionally apply react-refresh alias only in development
-      if (env === 'development') {
-        webpackConfig.resolve.alias = {
-          ...webpackConfig.resolve.alias,
-          'react-refresh/runtime': require.resolve('react-refresh/runtime')
-        };
-      }
+      // No special webpack config for now
       return webpackConfig;
     }
   }
