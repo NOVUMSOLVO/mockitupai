@@ -36,8 +36,21 @@ const app = express();
 
 // --- Core Middleware Setup ---
 
+// Trust proxy headers (especially for X-Forwarded-For from Render)
+app.set('trust proxy', 1); // Adjust the number of proxies if needed, 1 is common for Render
+
 // Set security headers (Helmet)
-app.use(helmet());
+// app.use(helmet()); // Comment out the original default helmet call
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      ...helmet.contentSecurityPolicy.getDefaultDirectives(), // Spread default directives
+      scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"], // More permissive script-src
+      imgSrc: ["'self'", "data:", "https://*", "http://*"],       // More permissive img-src
+      // scriptSrcAttr: ["'self'", "'unsafe-inline'"], // If needed for inline event handlers, default is 'none'
+    },
+  },
+}));
 
 // Enable CORS
 app.use(cors()); // Consider more restrictive CORS options for production
