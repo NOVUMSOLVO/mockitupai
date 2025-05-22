@@ -541,20 +541,30 @@ app.get('/api/test', (req, res) => {
 });
 
 
-// Serve static files from the React build directory
-const publicPath = path.join(__dirname, 'build');
-console.log('Serving static files from:', publicPath);
+// Get the current directory path
+const __dirname = path.resolve();
 
-// Verify the build directory exists
-const fs = require('fs');
+// Set static folder - handle both development and production
+const publicPath = path.join(__dirname, 'build');
+
+// Check if build directory exists
 if (!fs.existsSync(publicPath)) {
   console.error('Build directory does not exist!');
+  console.error('Expected path:', publicPath);
   console.error('Current working directory:', process.cwd());
   console.error('Directory contents:', fs.readdirSync(__dirname));
-  process.exit(1);
+  
+  // For Render deployment, try to find the build directory in the parent directory
+  const parentBuildPath = path.join(__dirname, '..', 'build');
+  if (fs.existsSync(parentBuildPath)) {
+    console.log('Found build directory in parent folder, using that instead');
+    publicPath = parentBuildPath;
+  } else {
+    process.exit(1);
+  }
 }
 
-// Log the contents of the build directory
+console.log('Using build directory:', publicPath);
 console.log('Build directory contents:', fs.readdirSync(publicPath));
 
 // Set up static file serving with proper caching and content types

@@ -67,10 +67,12 @@
   },
   "scripts": {
     "start": "node server.js",
-    "server": "nodemon server.js",
     "client": "PORT=3000 react-scripts start",
     "dev": "concurrently \"npm run server\" \"npm run client\"",
     "build": "react-scripts build",
+    "build:server": "npm install && npm run build",
+    "start:prod": "npm run build && NODE_ENV=production node server.js",
+    "server": "nodemon server.js",
     "test": "react-scripts test",
     "test:e2e": "jest --config=jest.config.js --detectOpenHandles --runInBand",
     "test:e2e:ci": "cross-env CI=true jest --config=jest.config.js --runInBand --forceExit --detectOpenHandles",
