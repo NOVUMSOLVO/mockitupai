@@ -18,6 +18,9 @@ require('dotenv').config({ path: '.env' });
 // Import database connection
 const connectDB = require('./server/config/db');
 
+// Initialize Firebase Admin
+const admin = require('./server/config/firebase-admin');
+
 // Connect to database
 connectDB();
 
