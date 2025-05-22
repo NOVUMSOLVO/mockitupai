@@ -531,27 +531,48 @@ app.post('/webhook/stripe', async (req, res) => {
 // Error handler middleware (last middleware)
 app.use(errorHandler);
 
-// Serve frontend static files
-// Serve static files from the React app
+// Serve static files from the React build directory
 const publicPath = path.join(__dirname, 'build');
+
+// Set up static file serving with proper caching and content types
 app.use(express.static(publicPath, {
   etag: true,
   lastModified: true,
   maxAge: '1y',
   setHeaders: (res, path) => {
-    // Cache static assets for 1 year
-    if (path.endsWith('.css') || path.endsWith('.js') || path.endsWith('.png') || path.endsWith('.jpg') || path.endsWith('.jpeg') || path.endsWith('.gif') || path.endsWith('.svg') || path.endsWith('.ico') || path.endsWith('.woff') || path.endsWith('.woff2') || path.endsWith('.ttf') || path.endsWith('.eot')) {
-      res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+    // Set proper content types for common file types
+    if (path.endsWith('.js')) {
+      res.setHeader('Content-Type', 'application/javascript');
+    } else if (path.endsWith('.css')) {
+      res.setHeader('Content-Type', 'text/css');
+    } else if (path.endsWith('.json')) {
+      res.setHeader('Content-Type', 'application/json');
+    } else if (path.endsWith('.png')) {
+      res.setHeader('Content-Type', 'image/png');
+    } else if (path.endsWith('.jpg') || path.endsWith('.jpeg')) {
+      res.setHeader('Content-Type', 'image/jpeg');
+    } else if (path.endsWith('.svg')) {
+      res.setHeader('Content-Type', 'image/svg+xml');
+    }
+    
+    // Disable caching for HTML files
+    if (path.endsWith('.html')) {
+      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+      res.setHeader('Pragma', 'no-cache');
+      res.setHeader('Expires', '0');
     }
   }
 }));
 
-// Handle React routing, return all requests to React app
+// Handle React routing - return all other requests to React app
 app.get('*', (req, res) => {
-  res.sendFile(path.join(publicPath, 'index.html'));
-});
-app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, 'build', 'index.html'));
+  res.sendFile(path.join(publicPath, 'index.html'), {
+    headers: {
+      'Cache-Control': 'no-cache, no-store, must-revalidate',
+      'Pragma': 'no-cache',
+      'Expires': '0'
+    }
+  });
 });
 
 // Start the server
