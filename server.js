@@ -157,25 +157,8 @@ app.use(mongoSanitize());
 app.use(xss());
 
 // --- Firebase Admin SDK Initialization ---
-const admin = require('firebase-admin');
-let serviceAccount;
-try {
-  if (process.env.FIREBASE_SERVICE_ACCOUNT) {
-    serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
-  }
-} catch (e) {
-  console.error('Error parsing FIREBASE_SERVICE_ACCOUNT JSON:', e);
-  serviceAccount = null;
-}
-
-if (serviceAccount && Object.keys(serviceAccount).length > 0) {
-  admin.initializeApp({
-    credential: admin.credential.cert(serviceAccount),
-  });
-  // console.log('Firebase Admin SDK initialized.');
-} else {
-  console.warn('Firebase service account not configured or invalid. Server-side Firebase features may not work.');
-}
+// Firebase Admin is already initialized in server/config/firebase-admin.js
+console.log('Firebase Admin SDK initialized');
 
 // --- Stripe SDK Initialization ---
 let stripe;
