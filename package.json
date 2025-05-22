@@ -2,7 +2,7 @@
   "name": "mockitupai",
   "version": "0.1.0",
   "private": true,
-  "homepage": ".",
+  "homepage": "https://mockitupai-1.onrender.com",
   "dependencies": {
     "@craco/craco": "^7.1.0",
     "@paypal/react-paypal-js": "^8.1.4",
