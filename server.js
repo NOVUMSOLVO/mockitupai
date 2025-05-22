@@ -532,7 +532,24 @@ app.post('/webhook/stripe', async (req, res) => {
 app.use(errorHandler);
 
 // Serve frontend static files
-app.use(express.static(path.join(__dirname, 'build')));
+// Serve static files from the React app
+const publicPath = path.join(__dirname, 'build');
+app.use(express.static(publicPath, {
+  etag: true,
+  lastModified: true,
+  maxAge: '1y',
+  setHeaders: (res, path) => {
+    // Cache static assets for 1 year
+    if (path.endsWith('.css') || path.endsWith('.js') || path.endsWith('.png') || path.endsWith('.jpg') || path.endsWith('.jpeg') || path.endsWith('.gif') || path.endsWith('.svg') || path.endsWith('.ico') || path.endsWith('.woff') || path.endsWith('.woff2') || path.endsWith('.ttf') || path.endsWith('.eot')) {
+      res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+    }
+  }
+}));
+
+// Handle React routing, return all requests to React app
+app.get('*', (req, res) => {
+  res.sendFile(path.join(publicPath, 'index.html'));
+});
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'build', 'index.html'));
 });

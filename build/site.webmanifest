@@ -1,0 +1,52 @@
+{
+  "name": "Mockitup.ai",
+  "short_name": "Mockitup",
+  "description": "Create stunning product mockups in seconds with AI",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#000000",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/logo192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/logo512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/screenshot1.png",
+      "sizes": "1280x800",
+      "type": "image/png",
+      "form_factor": "wide"
+    },
+    {
+      "src": "/screenshot2.png",
+      "sizes": "750x1334",
+      "type": "image/png",
+      "form_factor": "narrow"
+    }
+  ],
+  "categories": ["productivity", "utilities", "design"],
+  "shortcuts": [
+    {
+      "name": "Create New Mockup",
+      "short_name": "New",
+      "description": "Create a new AI mockup",
+      "url": "/create"
+    },
+    {
+      "name": "My Templates",
+      "short_name": "Templates",
+      "description": "View your saved templates",
+      "url": "/templates"
+    }
+  ]
+}
