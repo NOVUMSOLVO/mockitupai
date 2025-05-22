@@ -545,21 +545,22 @@ app.get('/api/test', (req, res) => {
 const currentDir = process.cwd();
 
 // Set static folder - handle both development and production
-const publicPath = path.join(currentDir, 'build');
+let publicPath = path.join(currentDir, 'build');
 
 // Check if build directory exists
 if (!fs.existsSync(publicPath)) {
-  console.error('Build directory does not exist!');
+  console.error('Build directory does not exist in current directory');
   console.error('Expected path:', publicPath);
-  console.error('Current working directory:', process.cwd());
-  console.error('Directory contents:', fs.readdirSync(currentDir));
   
   // For Render deployment, try to find the build directory in the parent directory
-  const parentBuildPath = path.join(__dirname, '..', 'build');
+  const parentBuildPath = path.join(currentDir, '..', 'build');
   if (fs.existsSync(parentBuildPath)) {
     console.log('Found build directory in parent folder, using that instead');
     publicPath = parentBuildPath;
   } else {
+    console.error('Build directory not found in parent directory either');
+    console.error('Current working directory:', currentDir);
+    console.error('Directory contents:', fs.readdirSync(currentDir));
     process.exit(1);
   }
 }
@@ -572,7 +573,10 @@ app.use(express.static(publicPath, {
   etag: true,
   lastModified: true,
   maxAge: '1y',
-  setHeaders: (res, path) => {
+  setHeaders: (res, filePath) => {
+    // Convert path to lowercase for case-insensitive matching
+    const path = filePath.toLowerCase();
+    
     // Set proper content types for common file types
     if (path.endsWith('.js')) {
       res.setHeader('Content-Type', 'application/javascript');
@@ -586,6 +590,8 @@ app.use(express.static(publicPath, {
       res.setHeader('Content-Type', 'image/jpeg');
     } else if (path.endsWith('.svg')) {
       res.setHeader('Content-Type', 'image/svg+xml');
+    } else if (path.endsWith('.ico')) {
+      res.setHeader('Content-Type', 'image/x-icon');
     }
     
     // Disable caching for HTML files
@@ -594,6 +600,15 @@ app.use(express.static(publicPath, {
       res.setHeader('Pragma', 'no-cache');
       res.setHeader('Expires', '0');
     }
+  }
+}));
+
+// Serve static files from the public directory for favicon and other assets
+app.use(express.static(path.join(publicPath, 'public'), {
+  maxAge: '1y',
+  setHeaders: (res, filePath) => {
+    // Set proper cache control for assets
+    res.setHeader('Cache-Control', 'public, max-age=31536000');
   }
 }));
 
