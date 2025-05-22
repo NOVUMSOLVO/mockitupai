@@ -1,5 +1,6 @@
 const express = require('express');
 const path = require('path');
+const fs = require('fs');
 const cors = require('cors');
 const helmet = require('helmet');
 const cookieParser = require('cookie-parser');
@@ -551,7 +552,7 @@ if (!fs.existsSync(publicPath)) {
   console.error('Build directory does not exist!');
   console.error('Expected path:', publicPath);
   console.error('Current working directory:', process.cwd());
-  console.error('Directory contents:', fs.readdirSync(__dirname));
+  console.error('Directory contents:', fs.readdirSync(currentDir));
   
   // For Render deployment, try to find the build directory in the parent directory
   const parentBuildPath = path.join(__dirname, '..', 'build');
