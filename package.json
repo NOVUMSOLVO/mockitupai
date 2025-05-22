@@ -3,6 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "homepage": "https://mockitupai-1.onrender.com",
+  "engines": {
+    "node": "20.x"
+  },
   "dependencies": {
     "@craco/craco": "^7.1.0",
     "@paypal/react-paypal-js": "^8.1.4",

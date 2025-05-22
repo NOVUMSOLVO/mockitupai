@@ -1,263 +1,57 @@
-# Deployment Guide for Mockitup.ai
-
-This guide provides detailed instructions for deploying your Mockitup.ai application to various hosting platforms.
-
-> **Note**: For a more detailed Netlify-specific deployment guide, please refer to [NETLIFY.md](./NETLIFY.md).
-
-## Quick Deployment (Recommended)
-
-We've created simplified deployment scripts that handle all the common issues and streamline the deployment process:
-
-### For Netlify:
-```bash
-# Make the script executable
-chmod +x deploy-netlify.sh
-
-# Run the deployment script
-./deploy-netlify.sh
-```
-
-### For Vercel:
-```bash
-# Make the script executable
-chmod +x deploy-vercel.sh
-
-# Run the deployment script
-./deploy-vercel.sh
-```
-
-These scripts will:
-- Check and fix path issues automatically
-- Install necessary CLI tools if missing
-- Build your application
-- Deploy to the respective platform
-- Handle common deployment problems
-
-## Prerequisites
-
-Before deploying, ensure you have:
-
-1. A complete and working React application
-2. Run `npm run build` to create a production build
-3. A GitHub account if deploying to GitHub Pages, Netlify, or Vercel
-4. Accounts on the respective deployment platforms
-
-## Option 1: Netlify Deployment
-
-Netlify offers free hosting with continuous deployment from Git repositories.
-
-### Deploying via Netlify UI
-
-1. Create an account at [Netlify](https://www.netlify.com/)
-2. Click "New site from Git"
-3. Choose your Git provider (GitHub, GitLab, BitBucket)
-4. Select your repository
-5. Configure build settings:
-   - Build command: `npm run build`
-   - Publish directory: `build`
-6. Click "Deploy site"
-
-### Deploying via Netlify CLI
-
-1. Install the Netlify CLI:
-   ```bash
-   npm install -g netlify-cli
-   ```
-
-2. Login to your Netlify account:
-   ```bash
-   netlify login
-   ```
-
-3. Initialize your project:
-   ```bash
-   netlify init
-   ```
-
-4. Follow the prompts to set up your site
-
-5. Deploy your site:
-   ```bash
-   netlify deploy --prod
-   ```
-
-## Option 2: Vercel Deployment
-
-Vercel specializes in React application deployments with zero configuration.
-
-### Deploying via Vercel UI
-
-1. Create an account at [Vercel](https://vercel.com/)
-2. Click "Import Project"
-3. Select "Import Git Repository" and connect your GitHub/GitLab/BitBucket account
-4. Select your repository
-5. Configure project settings if needed (defaults work well for React apps)
-6. Click "Deploy"
-
-### Deploying via Vercel CLI
-
-1. Install the Vercel CLI:
-   ```bash
-   npm install -g vercel
-   ```
-
-2. Login to your Vercel account:
-   ```bash
-   vercel login
-   ```
-
-3. Deploy your project:
-   ```bash
-   vercel
-   ```
-
-4. For production deployment:
-   ```bash
-   vercel --prod
-   ```
-
-## Option 3: GitHub Pages
-
-GitHub Pages is free and integrates well with GitHub repositories.
-
-1. Install the gh-pages package:
-   ```bash
-   npm install --save-dev gh-pages
-   ```
-
-2. Add the following to your package.json:
-   ```json
-   "homepage": "https://yourusername.github.io/mockitupai",
-   "scripts": {
-     "predeploy": "npm run build",
-     "deploy": "gh-pages -d build"
-   }
-   ```
-
-3. Deploy to GitHub Pages:
-   ```bash
-   npm run deploy
-   ```
-
-## Option 4: Firebase Hosting
-
-Google Firebase offers fast and secure hosting with a generous free tier.
-
-1. Install Firebase CLI:
-   ```bash
-   npm install -g firebase-tools
-   ```
-
-2. Login to Firebase:
-   ```bash
-   firebase login
-   ```
-
-3. Initialize your project:
-   ```bash
-   firebase init
-   ```
-   - Select "Hosting"
-   - Select your Firebase project
-   - Set "build" as your public directory
-   - Configure as a single-page app: Yes
-   - Don't overwrite index.html: No
-
-4. Deploy to Firebase:
-   ```bash
-   firebase deploy
-   ```
-
-## Option 5: AWS Amplify
-
-AWS Amplify provides hosting with built-in CI/CD and other AWS service integrations.
-
-1. Install the AWS Amplify CLI:
-   ```bash
-   npm install -g @aws-amplify/cli
-   ```
-
-2. Configure Amplify:
-   ```bash
-   amplify configure
-   ```
-
-3. Initialize your project:
-   ```bash
-   amplify init
-   ```
-
-4. Add hosting:
-   ```bash
-   amplify add hosting
-   ```
-   - Select "Hosting with Amplify Console"
-   - Choose "Continuous deployment"
-
-5. Publish:
-   ```bash
-   amplify publish
-   ```
-
-## Custom Domain Setup
-
-For each of the platforms above, you can configure a custom domain:
-
-1. **Netlify**: Site settings → Domain management → Add custom domain
-2. **Vercel**: Project settings → Domains → Add domain
-3. **GitHub Pages**: Repository settings → Pages → Custom domain
-4. **Firebase**: Firebase console → Hosting → Connect domain
-5. **AWS Amplify**: Amplify console → App settings → Domain management
-
-## Post-Deployment Steps
-
-After successful deployment:
-
-1. Verify that your application works correctly
-2. Set up analytics (Google Analytics, etc.)
-3. Configure any environment variables needed
-4. Set up monitoring
-5. Implement CI/CD for automatic deployments
-
-## Troubleshooting Common Deployment Issues
-
-### Page Not Found (404) Errors
-
-For SPAs, ensure your hosting provider is configured to redirect all requests to index.html.
-
-### Build Failures
-
-Check your build logs for errors. Common issues include:
-- Missing dependencies
-- Environment variable issues
-- Node.js version incompatibility
-
-### Performance Issues
-
-If your deployed app is slow:
-1. Use code splitting
-2. Optimize images
-3. Enable compression
-4. Use a CDN
-5. Implement caching strategies
-
-### Path Issues
-
-If you're encountering "No such file or directory" errors:
-1. Use our `fix-paths.sh` script to correct path problems
-2. Ensure you're using `/Users/valentinechideme/...` not `/valentinechideme/...`
-3. Check the terminal output for detailed error messages
-
-### CLI Tool Issues
-
-If you're seeing "could not determine executable to run" errors:
-1. Try installing the CLI tool globally: `npm install -g netlify-cli` or `npm install -g vercel`
-2. Use our deployment scripts which handle these issues automatically
-3. Try using npx: `npx netlify-cli deploy --prod` or `npx vercel --prod`
-
-### ESLint Warnings
-
-If you see ESLint warnings about invalid `href` attributes:
-1. Fix the links by adding valid URLs or using onClick handlers with buttons instead of empty links
-2. Add `{/* eslint-disable-next-line jsx-a11y/anchor-is-valid */}` before problematic links if they're intentionally empty
-3. Create proper routing for all page links in your React application
+# Deployment Guide for Render
+
+This guide provides instructions for deploying the MockitupAI application to Render.
+
+## Render Configuration
+
+In the Render dashboard, configure your service with the following settings:
+
+1.  **Runtime/Environment**: Select **Node**.
+2.  **Build Command**: `npm run build`
+    *   This command compiles the React frontend and prepares static assets in the `build` directory.
+3.  **Start Command**: `npm start`
+    *   This command executes `node server.js`, which starts the Express server. The server handles API requests and serves the static frontend assets.
+4.  **Node.js Version**: Ensure Render is using a Node.js version compatible with the `engines` field in `package.json` (e.g., 20.x). You can usually set this in your service's Environment settings on Render.
+
+## Environment Variables
+
+You **must** set the following environment variables in your Render service's environment settings. These are crucial for the application to function correctly.
+
+*   `NODE_ENV`: Set to `production` for optimal performance and to disable development-specific features.
+*   `PORT`: Render sets this automatically. Your application (`server.js`) is already configured to use it.
+*   `MONGO_URI`: Your MongoDB connection string.
+*   `JWT_SECRET`: Secret key for JSON Web Token generation and verification.
+*   `JWT_EXPIRE`: JWT expiration time (e.g., `30d`).
+*   `JWT_COOKIE_EXPIRE`: JWT cookie expiration time in days (e.g., `30`).
+*   `FIREBASE_SERVICE_ACCOUNT`: The JSON content of your Firebase service account key. This needs to be provided as a single line of JSON, or use Render's secret file feature if it's too large for a standard environment variable.
+*   `STRIPE_SECRET_KEY`: Your Stripe secret API key.
+*   `STRIPE_PUBLISHABLE_KEY`: Your Stripe publishable API key.
+*   `STRIPE_WEBHOOK_SECRET`: Your Stripe webhook signing secret.
+*   `STRIPE_PRICE_ID_PRO`: Stripe Price ID for your "Pro" plan.
+*   `STRIPE_PRICE_ID_UNLIMITED`: Stripe Price ID for your "Unlimited" plan.
+*   `PAYPAL_CLIENT_ID`: Your PayPal Client ID (if PayPal integration is active).
+*   `PAYPAL_CLIENT_SECRET`: Your PayPal Client Secret (if PayPal integration is active).
+*   `PAYPAL_API_URL`: PayPal API URL (e.g., `https://api-m.sandbox.paypal.com` for sandbox, `https://api-m.paypal.com` for live).
+
+**Note on `FIREBASE_SERVICE_ACCOUNT`**: If the JSON content is large, consider setting it as a "Secret File" in Render if available, and adjust `server.js` to read it from the specified path. Otherwise, ensure it's correctly formatted as a single-line JSON string when pasting into Render's environment variable settings.
+
+## Health Checks
+
+Render uses health checks to determine if your application has started successfully and remains healthy. `server.js` does not have a dedicated health check endpoint (e.g., `/healthz`). Render will likely default to checking if the TCP port is responsive.
+If you encounter deployment issues related to health checks:
+*   Ensure your application starts successfully and listens on the `PORT` provided by Render.
+*   Consider adding a dedicated `/healthz` route to your `server.js` that returns a `200 OK` status if the application is healthy.
+
+## Troubleshooting a Blank Page
+
+If you encounter a blank page after deployment:
+
+1.  **Check Render Logs**: Examine the build logs and runtime logs in the Render dashboard for any errors.
+    *   Build errors might indicate a problem with `npm run build`.
+    *   Runtime errors might show issues in `server.js` (e.g., problems connecting to the database, issues with environment variables).
+2.  **Browser Developer Console**: Open your browser's developer console (usually by pressing F12) and check for:
+    *   **Console Errors**: Look for JavaScript errors that might be preventing the React application from rendering.
+    *   **Network Tab**: Check if `index.html` is being loaded successfully (status 200). Then, check if the linked CSS and JavaScript files (e.g., `main.<hash>.js`, `main.<hash>.css`) are also loading with a 200 status. If they show 404 errors, it indicates a path issue or that the files were not correctly placed in the `build` directory or served.
+3.  **Environment Variables**: Double-check that all required environment variables are correctly set in Render and that they do not contain any typos or formatting issues (especially for multi-line variables like `FIREBASE_SERVICE_ACCOUNT` if not using secret files).
+
+By following these guidelines, you should be able to deploy and run the application successfully on Render.

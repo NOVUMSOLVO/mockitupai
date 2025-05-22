@@ -91,7 +91,6 @@ app.use(helmet({
         "https://api.paypal.com",                // PayPal API
         "https://*.paypal.com",                 // All PayPal subdomains
         "https://www.paypalobjects.com"        // PayPal resources
-        // Add your backend API endpoint here if it's on a different origin than the frontend
       ],
       fontSrc: [
         "'self'",
@@ -106,8 +105,8 @@ app.use(helmet({
         "https://www.sandbox.paypal.com",
         "https://*.paypal.com"
       ],
-      objectSrc: ["'none'"], // Disallows <object>, <embed>, <applet>
-      // upgradeInsecureRequests: [], // Uncomment to upgrade HTTP requests to HTTPS. Test thoroughly.
+      objectSrc: ["'none'"],
+      upgradeInsecureRequests: []
     },
   },
 }));
