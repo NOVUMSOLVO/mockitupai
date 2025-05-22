@@ -541,10 +541,10 @@ app.get('/api/test', (req, res) => {
 
 
 // Get the current directory path
-const __dirname = path.resolve();
+const currentDir = process.cwd();
 
 // Set static folder - handle both development and production
-const publicPath = path.join(__dirname, 'build');
+const publicPath = path.join(currentDir, 'build');
 
 // Check if build directory exists
 if (!fs.existsSync(publicPath)) {
