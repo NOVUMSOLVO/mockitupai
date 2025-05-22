@@ -15,6 +15,7 @@ import {
   FiZap
 } from 'react-icons/fi';
 import { FaRobot, FaBrain, FaChartLine, FaCommentDots } from 'react-icons/fa';
+import PlaceholderImage from '../components/PlaceholderImage';
 
 const TemplatesPage = () => {
   const [view, setView] = useState('grid');
@@ -27,7 +28,8 @@ const TemplatesPage = () => {
       title: 'AI Analytics Dashboard',
       category: 'AI/ML',
       description: 'Comprehensive dashboard for monitoring AI model performance and metrics',
-      preview: 'https://via.placeholder.com/800x600/1E3A8A/FFFFFF?text=AI+Dashboard',
+      preview: 'ai-dashboard',
+      color: '1E3A8A',
       likes: 328,
       downloads: 1250,
       isFree: false,
@@ -46,7 +48,8 @@ const TemplatesPage = () => {
       title: 'AI Chat Interface',
       category: 'Conversational AI',
       description: 'Modern chat interface for AI assistants and customer support bots',
-      preview: 'https://via.placeholder.com/800x600/065F46/FFFFFF?text=Chat+Interface',
+      preview: 'chat-interface',
+      color: '065F46',
       likes: 412,
       downloads: 1980,
       isFree: true,
@@ -65,7 +68,8 @@ const TemplatesPage = () => {
       title: 'Data Visualization Suite',
       category: 'Data Science',
       description: 'Advanced visualization components for data exploration',
-      preview: 'https://via.placeholder.com/800x600/7C3AED/FFFFFF?text=Data+Viz',
+      preview: 'data-viz',
+      color: '7C3AED',
       likes: 276,
       downloads: 890,
       isFree: false,
@@ -84,7 +88,8 @@ const TemplatesPage = () => {
       title: 'ML Model Interface',
       category: 'AI/ML',
       description: 'Clean interface for interacting with machine learning models',
-      preview: 'https://via.placeholder.com/800x600/DC2626/FFFFFF?text=ML+Model',
+      preview: 'ml-model',
+      color: 'DC2626',
       likes: 198,
       downloads: 720,
       isFree: true,
@@ -103,7 +108,8 @@ const TemplatesPage = () => {
       title: 'NLP Playground',
       category: 'Natural Language',
       description: 'Interactive playground for natural language processing demos',
-      preview: 'https://via.placeholder.com/800x600/EA580C/FFFFFF?text=NLP+Playground',
+      preview: 'nlp-playground',
+      color: 'EA580C',
       likes: 312,
       downloads: 1100,
       isFree: false,
@@ -122,7 +128,8 @@ const TemplatesPage = () => {
       title: 'Computer Vision Demo',
       category: 'Computer Vision',
       description: 'Real-time computer vision interface for object detection',
-      preview: 'https://via.placeholder.com/800x600/2563EB/FFFFFF?text=CV+Demonstration',
+      preview: 'cv-demo',
+      color: '2563EB',
       likes: 289,
       downloads: 950,
       isFree: false,
@@ -146,6 +153,7 @@ const TemplatesPage = () => {
     { id: 'nlp', name: 'Natural Language', icon: <FiCode className="mr-2" /> },
     { id: 'cv', name: 'Computer Vision', icon: <FiEye className="mr-2" /> }
   ];
+  
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [showFilters, setShowFilters] = useState(false);
   const [selectedTech, setSelectedTech] = useState([]);
@@ -202,137 +210,110 @@ const TemplatesPage = () => {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
         >
-          <h1 className="text-4xl font-extrabold text-gray-900 sm:text-5xl sm:tracking-tight lg:text-6xl">
-            Beautiful Templates
-          </h1>
-          <p className="mt-6 max-w-2xl mx-auto text-xl text-gray-500">
-            Choose from our collection of professionally designed templates to get started quickly
+          <h1 className="text-4xl font-bold text-gray-900 mb-4">AI-Powered Templates</h1>
+          <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+            Jumpstart your next AI project with our professionally designed, production-ready templates
           </p>
         </motion.div>
 
-        {/* Search and Filter */}
+        {/* Search and Filter Bar */}
         <div className="mb-8">
-          <form onSubmit={handleSearch} className="mb-6">
-            <div className="flex flex-col md:flex-row gap-4">
-              <div className="relative flex-1">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <form onSubmit={handleSearch} className="flex-1 max-w-2xl">
+              <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                   <FiSearch className="h-5 w-5 text-gray-400" />
                 </div>
                 <input
                   type="text"
-                  className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg leading-5 bg-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                  placeholder="Search templates by name, description, or technology..."
+                  className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="Search templates..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                 />
               </div>
+            </form>
+            
+            <div className="flex items-center space-x-2">
               <button
-                type="submit"
-                className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors"
+                onClick={() => setView('grid')}
+                className={`p-2 rounded-lg ${view === 'grid' ? 'bg-blue-100 text-blue-600' : 'text-gray-500 hover:bg-gray-100'}`}
+                aria-label="Grid view"
               >
-                Search
+                <FiGrid className="h-5 w-5" />
               </button>
               <button
-                type="button"
+                onClick={() => setView('list')}
+                className={`p-2 rounded-lg ${view === 'list' ? 'bg-blue-100 text-blue-600' : 'text-gray-500 hover:bg-gray-100'}`}
+                aria-label="List view"
+              >
+                <FiList className="h-5 w-5" />
+              </button>
+              <button
                 onClick={() => setShowFilters(!showFilters)}
-                className="px-4 py-2 flex items-center gap-2 bg-white border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors"
+                className="flex items-center px-4 py-2 border border-gray-300 rounded-lg shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
               >
-                <FiFilter className="h-5 w-5" />
-                <span className="hidden sm:inline">Filters</span>
-                {selectedTech.length > 0 && (
-                  <span className="inline-flex items-center justify-center px-2 py-0.5 text-xs font-medium bg-indigo-100 text-indigo-800 rounded-full">
-                    {selectedTech.length}
-                  </span>
-                )}
+                <FiFilter className="h-4 w-4 mr-2" />
+                Filters
               </button>
-              <div className="flex items-center space-x-2">
-                <button
-                  type="button"
-                  className={`p-2 rounded-lg ${view === 'grid' ? 'bg-indigo-100 text-indigo-600' : 'text-gray-500 hover:bg-gray-100'}`}
-                  onClick={() => setView('grid')}
-                  title="Grid view"
-                >
-                  <FiGrid className="h-5 w-5" />
-                </button>
-                <button
-                  type="button"
-                  className={`p-2 rounded-lg ${view === 'list' ? 'bg-indigo-100 text-indigo-600' : 'text-gray-500 hover:bg-gray-100'}`}
-                  onClick={() => setView('list')}
-                  title="List view"
-                >
-                  <FiList className="h-5 w-5" />
-                </button>
-              </div>
-            </div>
-          </form>
-
-          {/* Category Filters */}
-          <div className="mb-6">
-            <div className="flex flex-wrap gap-2">
-              {categories.map((category) => (
-                <button
-                  key={category.id}
-                  onClick={() => setSelectedCategory(category.id)}
-                  className={`px-4 py-2 rounded-full text-sm font-medium transition-colors flex items-center ${
-                    selectedCategory === category.id
-                      ? 'bg-indigo-600 text-white'
-                      : 'bg-white text-gray-700 hover:bg-gray-100 border border-gray-200'
-                  }`}
-                >
-                  {category.icon}
-                  {category.name}
-                </button>
-              ))}
             </div>
           </div>
 
-          {/* Advanced Filters */}
+          {/* Filters Panel */}
           <AnimatePresence>
             {showFilters && (
               <motion.div 
                 initial={{ opacity: 0, height: 0 }}
                 animate={{ opacity: 1, height: 'auto' }}
                 exit={{ opacity: 0, height: 0 }}
-                className="overflow-hidden bg-gray-50 rounded-lg p-4 mb-6 border border-gray-200"
+                className="mt-4 bg-white p-4 rounded-lg shadow-sm border border-gray-200 overflow-hidden"
               >
-                <div className="flex justify-between items-center mb-4">
-                  <h3 className="text-lg font-medium text-gray-900">Advanced Filters</h3>
-                  <div className="flex space-x-2">
-                    <button 
-                      onClick={resetFilters}
-                      className="text-sm text-indigo-600 hover:text-indigo-800"
-                    >
-                      Reset all
-                    </button>
-                    <button 
-                      onClick={() => setShowFilters(false)}
-                      className="text-gray-500 hover:text-gray-700"
-                    >
-                      <span className="sr-only">Close filters</span>
-                      <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                      </svg>
-                    </button>
+                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                  <div>
+                    <h3 className="text-sm font-medium text-gray-700 mb-2">Category</h3>
+                    <div className="flex flex-wrap gap-2">
+                      {categories.map((category) => (
+                        <button
+                          key={category.id}
+                          onClick={() => setSelectedCategory(category.id)}
+                          className={`flex items-center px-3 py-1.5 text-sm rounded-full ${
+                            selectedCategory === category.id
+                              ? 'bg-blue-100 text-blue-700'
+                              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                          }`}
+                        >
+                          {category.icon}
+                          {category.name}
+                        </button>
+                      ))}
+                    </div>
                   </div>
-                </div>
-                <div>
-                  <h4 className="text-sm font-medium text-gray-700 mb-2">Technologies</h4>
-                  <div className="flex flex-wrap gap-2">
-                    {allTech.map((tech) => (
-                      <button
-                        key={tech}
-                        type="button"
-                        onClick={() => toggleTech(tech)}
-                        className={`px-3 py-1 text-sm rounded-full border ${
-                          selectedTech.includes(tech)
-                            ? 'bg-indigo-100 border-indigo-300 text-indigo-800'
-                            : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50'
-                        }`}
-                      >
-                        {tech}
-                      </button>
-                    ))}
+                  
+                  <div>
+                    <h3 className="text-sm font-medium text-gray-700 mb-2">Technologies</h3>
+                    <div className="flex flex-wrap gap-2">
+                      {allTech.map((tech) => (
+                        <button
+                          key={tech}
+                          onClick={() => toggleTech(tech)}
+                          className={`px-3 py-1.5 text-sm rounded-full ${
+                            selectedTech.includes(tech)
+                              ? 'bg-blue-100 text-blue-700'
+                              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                          }`}
+                        >
+                          {tech}
+                        </button>
+                      ))}
+                    </div>
                   </div>
+                  
+                  <button
+                    onClick={resetFilters}
+                    className="text-sm text-blue-600 hover:text-blue-800 font-medium self-start md:self-center"
+                  >
+                    Reset filters
+                  </button>
                 </div>
               </motion.div>
             )}
@@ -340,7 +321,7 @@ const TemplatesPage = () => {
         </div>
 
         {/* Templates Grid */}
-        {view === 'grid' ? (
+        {filteredTemplates.length > 0 ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredTemplates.map((template, index) => (
               <motion.div
@@ -353,84 +334,63 @@ const TemplatesPage = () => {
               >
                 <div className="relative">
                   <div className="aspect-video bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center overflow-hidden">
-                    <img 
-                      src={template.preview} 
-                      alt={template.title}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                    <PlaceholderImage 
+                      width={800}
+                      height={600}
+                      text={template.title}
+                      className="w-full h-full object-cover"
+                      style={{ backgroundColor: `#${template.color}20`, color: `#${template.color}` }}
                     />
                   </div>
-                  <div className="absolute top-3 right-3 flex space-x-2">
+                  <div className="absolute top-3 right-3 flex flex-col space-y-2">
                     {template.isFree && (
-                      <span className="bg-green-100 text-green-800 text-xs font-medium px-2.5 py-0.5 rounded-full flex items-center">
+                      <span className="bg-green-100 text-green-800 text-xs font-medium px-2.5 py-1 rounded-full flex items-center">
                         <span className="w-1.5 h-1.5 bg-green-500 rounded-full mr-1.5"></span>
                         Free
                       </span>
                     )}
                     {template.isAIEnhanced && (
-                      <span className="bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded-full flex items-center">
+                      <span className="bg-purple-100 text-purple-800 text-xs font-medium px-2.5 py-1 rounded-full flex items-center">
                         <FiZap className="w-3 h-3 mr-1" />
-                        AI-Powered
+                        AI Enhanced
                       </span>
                     )}
                   </div>
                 </div>
+                
                 <div className="p-5 flex-1 flex flex-col">
-                  <div className="flex items-start justify-between mb-3">
-                    <div className="flex items-center">
-                      <div className="p-2 bg-indigo-50 rounded-lg text-indigo-600 mr-3">
-                        {template.icon}
-                      </div>
-                      <div>
-                        <h3 className="text-lg font-semibold text-gray-900 line-clamp-1">{template.title}</h3>
-                        <p className="text-sm text-gray-500">{template.category}</p>
-                      </div>
+                  <div className="flex items-center justify-between mb-2">
+                    <h3 className="text-lg font-semibold text-gray-900">{template.title}</h3>
+                    <div className="flex items-center text-yellow-400">
+                      {[1, 2, 3, 4, 5].map((star) => (
+                        <svg
+                          key={star}
+                          className={`h-4 w-4 ${star <= 4 ? 'text-yellow-400' : 'text-gray-300'}`}
+                          fill="currentColor"
+                          viewBox="0 0 20 20"
+                        >
+                          <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                        </svg>
+                      ))}
                     </div>
-                    <button 
-                      className="text-gray-400 hover:text-red-500 p-1 -mt-1 -mr-1"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        // Handle like action
-                      }}
-                    >
-                      <FiHeart className="h-5 w-5" />
-                    </button>
                   </div>
                   
-                  <p className="text-gray-600 text-sm mb-4 line-clamp-2">{template.description}</p>
+                  <p className="text-gray-600 text-sm mb-4 flex-1">{template.description}</p>
                   
-                  <div className="mt-auto">
-                    <div className="flex flex-wrap gap-1.5 mb-4">
-                      {template.tech && template.tech.slice(0, 3).map((tech) => (
-                        <span key={tech} className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                          {tech}
-                        </span>
-                      ))}
-                      {template.tech && template.tech.length > 3 && (
-                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
-                          +{template.tech.length - 3}
-                        </span>
-                      )}
-                    </div>
-                    
-                    <div className="flex items-center justify-between pt-4 border-t border-gray-100">
-                      <div className="flex items-center space-x-4">
-                        <span className="flex items-center text-sm text-gray-500">
+                  <div className="mt-4 pt-4 border-t border-gray-100">
+                    <div className="flex justify-between items-center">
+                      <div className="flex items-center">
+                        <div className="flex items-center text-sm text-gray-500 mr-4">
+                          <FiDownload className="h-4 w-4 mr-1" />
+                          {template.downloads.toLocaleString()}
+                        </div>
+                        <div className="flex items-center text-sm text-gray-500">
                           <FiHeart className="h-4 w-4 mr-1 text-red-500" />
                           {template.likes.toLocaleString()}
-                        </span>
-                        <span className="flex items-center text-sm text-gray-500">
-                          <FiDownload className="h-4 w-4 mr-1 text-indigo-500" />
-                          {template.downloads.toLocaleString()}
-                        </span>
+                        </div>
                       </div>
-                      <button 
-                        className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
-                          template.isFree 
-                            ? 'bg-indigo-600 text-white hover:bg-indigo-700' 
-                            : 'bg-white text-indigo-600 border border-indigo-600 hover:bg-indigo-50'
-                        }`}
-                      >
-                        {template.isFree ? 'Download' : 'View Details'}
+                      <button className="text-sm font-medium text-blue-600 hover:text-blue-800 transition-colors">
+                        View details
                       </button>
                     </div>
                   </div>
@@ -439,110 +399,31 @@ const TemplatesPage = () => {
             ))}
           </div>
         ) : (
-          <div className="space-y-4">
-            {filteredTemplates.map((template, index) => (
-              <motion.div
-                key={template.id}
-                className="group bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-lg transition-all duration-300 border border-gray-100"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.3, delay: index * 0.05 }}
-              >
-                <div className="flex flex-col md:flex-row">
-                  <div className="md:w-1/3 lg:w-1/4 h-56 md:h-auto relative">
-                    <div className="absolute inset-0 bg-gradient-to-br from-gray-100 to-gray-200">
-                      <img 
-                        src={template.preview} 
-                        alt={template.title}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                      />
-                    </div>
-                    <div className="absolute top-3 right-3 flex flex-col space-y-2">
-                      {template.isFree && (
-                        <span className="bg-green-100 text-green-800 text-xs font-medium px-2.5 py-1 rounded-full flex items-center">
-                          <span className="w-1.5 h-1.5 bg-green-500 rounded-full mr-1.5"></span>
-                          Free
-                        </span>
-                      )}
-                      {template.isAIEnhanced && (
-                        <span className="bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-1 rounded-full flex items-center">
-                          <FiZap className="w-3 h-3 mr-1" />
-                          AI-Powered
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                  <div className="p-6 flex-1 flex flex-col">
-                    <div className="flex justify-between items-start">
-                      <div className="flex items-start">
-                        <div className="p-2 bg-indigo-50 rounded-lg text-indigo-600 mr-4 mt-1">
-                          {template.icon}
-                        </div>
-                        <div>
-                          <h3 className="text-xl font-semibold text-gray-900">{template.title}</h3>
-                          <p className="text-sm text-gray-500 mt-1">{template.category}</p>
-                          <p className="mt-3 text-gray-600">{template.description}</p>
-                          
-                          <div className="mt-4 flex flex-wrap gap-2">
-                            {template.tech && template.tech.map((tech) => (
-                              <span key={tech} className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                                {tech}
-                              </span>
-                            ))}
-                          </div>
-                        </div>
-                      </div>
-                      <button 
-                        className="text-gray-400 hover:text-red-500 p-1 -mt-1 -mr-1"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          // Handle like action
-                        }}
-                      >
-                        <FiHeart className="h-5 w-5" />
-                      </button>
-                    </div>
-                    
-                    <div className="mt-6 pt-4 border-t border-gray-100 flex items-center justify-between">
-                      <div className="flex items-center space-x-6">
-                        <span className="flex items-center text-sm text-gray-500">
-                          <FiHeart className="h-4 w-4 mr-1.5 text-red-500" />
-                          {template.likes.toLocaleString()} Likes
-                        </span>
-                        <span className="flex items-center text-sm text-gray-500">
-                          <FiDownload className="h-4 w-4 mr-1.5 text-indigo-500" />
-                          {template.downloads.toLocaleString()} Downloads
-                        </span>
-                      </div>
-                      <div className="flex space-x-3">
-                        <button 
-                          className="px-4 py-2 text-sm font-medium text-indigo-600 border border-indigo-600 rounded-lg hover:bg-indigo-50 transition-colors"
-                        >
-                          Preview
-                        </button>
-                        <button 
-                          className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
-                            template.isFree 
-                              ? 'bg-indigo-600 text-white hover:bg-indigo-700' 
-                              : 'bg-white text-indigo-600 border border-indigo-600 hover:bg-indigo-50'
-                          }`}
-                        >
-                          {template.isFree ? 'Download Now' : 'View Details'}
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </motion.div>
-            ))}
-          </div>
-        )}
-
-        {/* No results */}
-        {filteredTemplates.length === 0 && (
           <div className="text-center py-12">
-            <h3 className="text-lg font-medium text-gray-900">No templates found</h3>
-            <p className="mt-2 text-gray-500">Try adjusting your search or filter to find what you're looking for.</p>
+            <div className="mx-auto h-24 w-24 text-gray-300 mb-4">
+              <svg
+                className="h-full w-full"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={1}
+                  d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                />
+              </svg>
+            </div>
+            <h3 className="text-lg font-medium text-gray-900 mb-1">No templates found</h3>
+            <p className="text-gray-500">Try adjusting your search or filter to find what you're looking for.</p>
+            <button
+              onClick={resetFilters}
+              className="mt-4 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+            >
+              Reset all filters
+            </button>
           </div>
         )}
       </div>

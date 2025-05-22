@@ -2,16 +2,47 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <link rel="icon" href="%PUBLIC_URL%/favicon.ico" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="theme-color" content="#000000" />
+    <link rel="icon" href="%PUBLIC_URL%/favicon.ico" type="image/x-icon" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes" />
+    
+    <!-- Theme Color for different platforms -->
+    <meta name="theme-color" content="#000000" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)" />
+    
+    <!-- PWA Configuration -->
+    <link rel="manifest" href="%PUBLIC_URL%/site.webmanifest" />
+    <link rel="apple-touch-icon" href="%PUBLIC_URL%/logo192.png" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Mockitup.ai" />
+    
+    <!-- SEO Meta Tags -->
     <meta
       name="description"
       content="Mockitup.ai - Create stunning product mockups in seconds with AI"
     />
-    <link rel="apple-touch-icon" href="%PUBLIC_URL%/logo192.png" />
-    <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
-    <title>Mockitup.ai</title>
+    <meta name="keywords" content="AI, mockups, design, product, generator" />
+    <meta name="author" content="Mockitup.ai" />
+    
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://mockitup.ai/" />
+    <meta property="og:title" content="Mockitup.ai - AI-Powered Product Mockups" />
+    <meta property="og:description" content="Create stunning product mockups in seconds with AI" />
+    <meta property="og:image" content="%PUBLIC_URL%/og-image.jpg" />
+    
+    <!-- Twitter -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:url" content="https://mockitup.ai/" />
+    <meta name="twitter:title" content="Mockitup.ai - AI-Powered Product Mockups" />
+    <meta name="twitter:description" content="Create stunning product mockups in seconds with AI" />
+    <meta name="twitter:image" content="%PUBLIC_URL%/og-image.jpg" />
+    
+    <title>Mockitup.ai - AI-Powered Product Mockups</title>
+    
+    <!-- Preload critical resources -->
+    <link rel="preload" href="%PUBLIC_URL%/static/css/main.css" as="style" />
+    <link rel="preload" href="%PUBLIC_URL%/static/js/main.js" as="script" />
   </head>
   <body>
     <noscript>You need to enable JavaScript to run this app.</noscript>

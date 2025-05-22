@@ -34,20 +34,80 @@ const errorHandler = require('./server/middleware/error');
 // Initialize express
 const app = express();
 
-// --- Core Middleware Setup ---
+// Favicon handler with proper caching
+app.get('/favicon.ico', (req, res) => {
+  res.setHeader('Content-Type', 'image/x-icon');
+  res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+  res.sendFile(path.join(__dirname, 'public', 'favicon.ico'));
+});
+
+// Set security headers (Helmet)
 
 // Trust proxy headers (especially for X-Forwarded-For from Render)
 app.set('trust proxy', 1); // Adjust the number of proxies if needed, 1 is common for Render
 
 // Set security headers (Helmet)
-// app.use(helmet()); // Comment out the original default helmet call
+
+// NEW, more explicit CSP configuration
 app.use(helmet({
   contentSecurityPolicy: {
     directives: {
-      ...helmet.contentSecurityPolicy.getDefaultDirectives(), // Spread default directives
-      scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"], // More permissive script-src
-      imgSrc: ["'self'", "data:", "https://*", "http://*"],       // More permissive img-src
-      // scriptSrcAttr: ["'self'", "'unsafe-inline'"], // If needed for inline event handlers, default is 'none'
+      defaultSrc: ["'self'"],
+      scriptSrc: [
+        "'self'",
+        "'unsafe-inline'", // Allows inline <script> tags
+        "'unsafe-eval'",   // Allows eval and similar methods (try to remove in production if possible)
+        "https://www.googletagmanager.com", // For Google Tag Manager
+        "https://apis.google.com",          // For other Google APIs (e.g., Firebase uses some)
+        "https://js.stripe.com",            // For Stripe.js
+        "https://checkout.stripe.com",      // For Stripe Checkout
+        "https://www.paypal.com",           // For PayPal
+        "https://www.paypalobjects.com",    // For PayPal resources
+        "https://firebasejs.googleapis.com" // For Firebase JS SDK
+      ],
+      styleSrc: [
+        "'self'",
+        "'unsafe-inline'", // Allows inline <style> tags and style attributes
+        "https://fonts.googleapis.com", // For Google Fonts
+        "https://js.stripe.com",        // For Stripe.js styles
+        "https://checkout.stripe.com"   // For Stripe Checkout styles
+      ],
+      imgSrc: [
+        "'self'",
+        "data:",    // Allows data: URIs for images
+        "https://*", // Allows images from any HTTPS source (consider restricting further in production)
+        "http://*"   // Allows images from any HTTP source (remove in production)
+      ],
+      connectSrc: [
+        "'self'",
+        "https://firebaseinstallations.googleapis.com", // Firebase Installations
+        "https://firebase.googleapis.com",              // General Firebase APIs
+        "https://firestore.googleapis.com",            // Firestore
+        "https://identitytoolkit.googleapis.com",     // Firebase Authentication
+        "https://www.googleapis.com",                // Other Google APIs
+        "https://api.stripe.com",                   // Stripe API
+        "https://*.stripe.com",                    // All Stripe subdomains
+        "https://checkout.stripe.com",            // Stripe Checkout
+        "https://api.paypal.com",                // PayPal API
+        "https://*.paypal.com",                 // All PayPal subdomains
+        "https://www.paypalobjects.com"        // PayPal resources
+        // Add your backend API endpoint here if it's on a different origin than the frontend
+      ],
+      fontSrc: [
+        "'self'",
+        "https://fonts.gstatic.com" // For Google Fonts
+      ],
+      frameSrc: [
+        "'self'",
+        "https://js.stripe.com",
+        "https://hooks.stripe.com",
+        "https://checkout.stripe.com",
+        "https://www.paypal.com",
+        "https://www.sandbox.paypal.com",
+        "https://*.paypal.com"
+      ],
+      objectSrc: ["'none'"], // Disallows <object>, <embed>, <applet>
+      // upgradeInsecureRequests: [], // Uncomment to upgrade HTTP requests to HTTPS. Test thoroughly.
     },
   },
 }));
@@ -79,8 +139,13 @@ app.use(express.json({
 }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-// Cookie parser
-app.use(cookieParser());
+// Cookie parser with security settings
+app.use(cookieParser({
+  httpOnly: true,
+  secure: process.env.NODE_ENV === 'production',
+  sameSite: 'strict',
+  maxAge: 30 * 24 * 60 * 60 * 1000 // 30 days
+}));
 
 // Sanitize MongoDB data
 app.use(mongoSanitize());
@@ -397,96 +462,83 @@ app.post('/webhook/stripe', async (req, res) => {
                 status: stripeSub.status,
                 current_period_end: admin.firestore.Timestamp.fromMillis(stripeSub.current_period_end * 1000),
             });
-            if (userIdToUpdate) logTransaction('webhook.invoice.payment_succeeded', 'stripe', userIdToUpdate, { subscriptionIdToUpdate, customerId });
+            if (userIdToUpdate) {
+              logTransaction('webhook.invoice.payment_succeeded', 'stripe', userIdToUpdate, { subscriptionIdToUpdate, customerId });
+            }
         }
         break;
       case 'invoice.payment_failed':
         subscriptionIdToUpdate = data.subscription;
         customerId = data.customer;
-        userIdToUpdate = await findUserAndUpdateSubscription(subscriptionIdToUpdate, { status: 'past_due' }); // Or map Stripe's status
-        if (userIdToUpdate) logError('webhook.invoice.payment_failed', 'stripe', userIdToUpdate, data, { subscriptionIdToUpdate, customerId });
+        if (subscriptionIdToUpdate) {
+            // It's good practice to retrieve the subscription to confirm its state
+            // and to ensure you have the most up-to-date information.
+            const stripeSub = await stripe.subscriptions.retrieve(subscriptionIdToUpdate); 
+            userIdToUpdate = await findUserAndUpdateSubscription(subscriptionIdToUpdate, { 
+                status: stripeSub.status, // Use status from the retrieved subscription
+                // Optionally, update other fields like 'last_payment_attempt_failed_reason' if available and needed
+            });
+            if (userIdToUpdate) {
+                logError('webhook.invoice.payment_failed', 'stripe', userIdToUpdate, data, { subscriptionIdToUpdate, customerId, status: stripeSub.status });
+            }
+        }
         break;
       case 'customer.subscription.updated':
-      case 'customer.subscription.deleted': 
-      case 'customer.subscription.created': 
+        // For subscription updates, data is the subscription object itself
+        subscriptionIdToUpdate = data.id; 
+        customerId = data.customer;
+        if (subscriptionIdToUpdate) {
+            // data should be the updated subscription object from Stripe
+            userIdToUpdate = await findUserAndUpdateSubscription(subscriptionIdToUpdate, {
+                status: data.status,
+                planId: data.items.data[0].price.lookup_key || data.items.data[0].price.id, 
+                cancel_at_period_end: data.cancel_at_period_end,
+                current_period_end: admin.firestore.Timestamp.fromMillis(data.current_period_end * 1000),
+            });
+            if (userIdToUpdate) {
+                logTransaction('webhook.customer.subscription.updated', 'stripe', userIdToUpdate, { subscriptionIdToUpdate, customerId, status: data.status });
+            }
+        }
+        break;
+      case 'customer.subscription.deleted':
+        // For subscription deletions, data is the subscription object itself (now canceled)
         subscriptionIdToUpdate = data.id;
         customerId = data.customer;
-        userIdToUpdate = await findUserAndUpdateSubscription(subscriptionIdToUpdate, {
-            status: data.status,
-            planId: data.items.data[0].price.lookup_key || data.items.data[0].price.id, 
-            cancel_at_period_end: data.cancel_at_period_end,
-            current_period_end: admin.firestore.Timestamp.fromMillis(data.current_period_end * 1000),
-        });
-         if (userIdToUpdate) {
-            logTransaction(`webhook.${event.type}`, 'stripe', userIdToUpdate, { subscriptionIdToUpdate, customerId, status: data.status });
-        } else if (event.type === 'customer.subscription.created') {
-            console.warn(`Subscription ${subscriptionIdToUpdate} for customer ${customerId} not found in DB. Consider manual check or creating user mapping.`);
+        if (subscriptionIdToUpdate) {
+             // data should be the (now canceled) subscription object from Stripe
+            userIdToUpdate = await findUserAndUpdateSubscription(subscriptionIdToUpdate, {
+                status: data.status, // Should be 'canceled' or similar
+                // Consider clearing or marking fields like current_period_end as appropriate
+            });
+            if (userIdToUpdate) {
+                logTransaction('webhook.customer.subscription.deleted', 'stripe', userIdToUpdate, { subscriptionIdToUpdate, customerId, status: data.status });
+            }
         }
         break;
       default:
-        console.log(`Unhandled Stripe event type ${event.type}`);
+        console.warn(`Unhandled event type: ${event.type}`);
     }
-    res.json({received: true});
+
+    // Always respond with 200 to acknowledge receipt of the event
+    res.status(200).send('Event received');
   } catch (error) {
-      console.error(`Error processing Stripe webhook ${event.type}:`, error);
-      logError(`webhook.stripe.processing_error.${event.type}`, 'stripe', null, error, { eventId: event.id });
-      res.status(500).json({ error: 'Webhook processing error' });
+    console.error('Error processing webhook event:', error);
+    logError('webhook.stripe.processing_error', 'stripe', null, error);
+    return res.status(500).send('Webhook processing error');
   }
 });
 
-// Webhook for PayPal events
-app.post('/webhook/paypal', async (req, res) => {
-  console.log('PayPal webhook received.', req.body);
-  // TODO: Implement PayPal webhook verification (highly recommended) and event handling
-  // Example: const eventType = req.body.event_type;
-  logTransaction('webhook.paypal.received', 'paypal', null, req.body);
-  res.status(200).send('EVENT_RECEIVED'); 
-});
+// Error handler middleware (last middleware)
+app.use(errorHandler);
 
-
-// --- Serve React Frontend and SPA Fallback ---
-// Serve static files from the React build directory
+// Serve frontend static files
 app.use(express.static(path.join(__dirname, 'build')));
-
-// The "catchall" handler: for any request that doesn't match one above,
-// send back React's index.html file.
 app.get('*', (req, res) => {
-  // Check if the request is for an API endpoint or a webhook, if so, it should have been handled already.
-  // This check is a safeguard but ideally, API/webhook routes are specific enough not to fall through.
-  if (req.originalUrl.startsWith('/api/') || req.originalUrl.startsWith('/webhook/')) {
-    // This indicates a misconfiguration or a request to a non-existent API/webhook endpoint.
-    // Let the error handler (or a specific 404 for API) handle this.
-    // For now, we can send a 404 directly for unhandled API/webhook like paths.
-    return res.status(404).send('API or Webhook endpoint not found.');
-  }
-  // For all other GET requests, serve the React app's entry point.
   res.sendFile(path.join(__dirname, 'build', 'index.html'));
 });
 
-// --- Global Error Handler (must be the LAST middleware) ---
-app.use(errorHandler);
-
-// --- Start Server ---
+// Start the server
 const PORT = process.env.PORT || 5000;
-const HOST = '0.0.0.0'; // Explicitly set host for Render
-
-const server = app.listen(PORT, HOST, () =>
-  console.log(
-    `Server running in ${process.env.NODE_ENV || 'development'} mode on port ${PORT}`
-  )
-);
-
-// Increase timeout values
-server.keepAliveTimeout = 120000; // 120 seconds
-server.headersTimeout = 125000; // 125 seconds (must be > keepAliveTimeout)
-
-// Handle unhandled promise rejections
-process.on('unhandledRejection', (reason, promise) => {
-  console.error('Unhandled Rejection at:', promise, 'reason:', reason);
-});
-
-process.on('uncaughtException', (error) => {
-  console.error('Uncaught Exception:', error);
-  // It's generally recommended to gracefully shutdown the server on uncaught exceptions
-  // process.exit(1);
+app.listen(PORT, () => {
+  console.log(`Server is running in ${process.env.NODE_ENV} mode on port ${PORT}`);
 });

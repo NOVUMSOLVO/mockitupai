@@ -1,0 +1,26 @@
+# https://www.robotstxt.org/robotstxt.html
+User-agent: *
+Allow: /
+
+# Sitemap location
+Sitemap: https://mockitup.ai/sitemap.xml
+
+# Disallow crawling of admin and internal pages
+Disallow: /admin/
+Disallow: /api/
+Disallow: /private/
+
+# Allow all other pages
+Allow: /*.html
+Allow: /*.css
+Allow: /*.js
+Allow: /*.json
+
+# Crawl-delay parameter to prevent server overload
+Crawl-delay: 10
+
+# Specify the host (optional but recommended)
+Host: https://mockitup.ai
+
+# Sitemap location (alternative format)
+Sitemap: https://mockitup.ai/sitemap.xml

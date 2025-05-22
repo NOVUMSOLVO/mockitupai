@@ -4,6 +4,7 @@
   "private": true,
   "homepage": ".",
   "dependencies": {
+    "@craco/craco": "^7.1.0",
     "@paypal/react-paypal-js": "^8.1.4",
     "@stripe/react-stripe-js": "^2.5.1",
     "@stripe/stripe-js": "^2.4.0",
@@ -32,8 +33,7 @@
     "react-router-dom": "^6.22.3",
     "stripe": "^14.22.0",
     "tailwindcss-animate": "^1.0.7",
-    "xss-clean": "^0.1.1",
-    "@craco/craco": "^7.1.0"
+    "xss-clean": "^0.1.1"
   },
   "devDependencies": {
     "@babel/core": "^7.27.1",
@@ -41,6 +41,8 @@
     "@babel/preset-react": "^7.27.1",
     "@pmmmwh/react-refresh-webpack-plugin": "^0.6.0",
     "@testing-library/jest-dom": "^6.6.3",
+    "@types/node": "^22.15.21",
+    "@types/react-router-dom": "^5.3.3",
     "autoprefixer": "^10.4.16",
     "babel-jest": "^29.7.0",
     "babel-preset-expo": "^13.1.11",
@@ -66,10 +68,10 @@
   "scripts": {
     "start": "node server.js",
     "server": "nodemon server.js",
-    "client": "npm start --prefix client",
+    "client": "PORT=3000 react-scripts start",
     "dev": "concurrently \"npm run server\" \"npm run client\"",
-    "build": "craco build",
-    "test": "craco test",
+    "build": "react-scripts build",
+    "test": "react-scripts test",
     "test:e2e": "jest --config=jest.config.js --detectOpenHandles --runInBand",
     "test:e2e:ci": "cross-env CI=true jest --config=jest.config.js --runInBand --forceExit --detectOpenHandles",
     "test:e2e:setup": "node jest-environment-puppeteer/setup.js",
