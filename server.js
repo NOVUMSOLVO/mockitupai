@@ -531,8 +531,31 @@ app.post('/webhook/stripe', async (req, res) => {
 // Error handler middleware (last middleware)
 app.use(errorHandler);
 
+// Test endpoint
+app.get('/api/test', (req, res) => {
+  res.json({
+    status: 'success',
+    message: 'API is working!',
+    timestamp: new Date().toISOString()
+  });
+});
+
+
 // Serve static files from the React build directory
 const publicPath = path.join(__dirname, 'build');
+console.log('Serving static files from:', publicPath);
+
+// Verify the build directory exists
+const fs = require('fs');
+if (!fs.existsSync(publicPath)) {
+  console.error('Build directory does not exist!');
+  console.error('Current working directory:', process.cwd());
+  console.error('Directory contents:', fs.readdirSync(__dirname));
+  process.exit(1);
+}
+
+// Log the contents of the build directory
+console.log('Build directory contents:', fs.readdirSync(publicPath));
 
 // Set up static file serving with proper caching and content types
 app.use(express.static(publicPath, {
